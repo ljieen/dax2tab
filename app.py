@@ -10,28 +10,29 @@ st.write("Welcome! Let me help you convert your PowerBI reports to Tableau dashb
 
 # Section 1: Datasource Setup
 st.write("1. Datasource Setup")
-st.write("""
-    • Identify key tables/columns  
-    • Suggest Tableau datasource structure
+st.markdown("""
+&nbsp;&nbsp;&nbsp;&nbsp;• Identify key tables/columns  
+&nbsp;&nbsp;&nbsp;&nbsp;• Suggest Tableau datasource structure
 """)
 
 # Section 2: DAX to Tableau Conversion
-st.write("### 2. DAX to Tableau Conversion")
-st.write("""
-    • Convert DAX to Tableau calculated fields  
-    • Explain conversions
+st.write("2. DAX to Tableau Conversion")
+st.markdown("""
+&nbsp;&nbsp;&nbsp;&nbsp;• Convert DAX to Tableau calculated fields  
+&nbsp;&nbsp;&nbsp;&nbsp;• Explain conversions
 """)
 
 # Section 3: Platform Insights
-st.write("### 3. Platform Insights")
-st.write("""
-    • Highlight differences between PowerBI & Tableau  
-    • Offer migration tips
+st.write("3. Platform Insights")
+st.markdown("""
+&nbsp;&nbsp;&nbsp;&nbsp;• Highlight differences between PowerBI & Tableau  
+&nbsp;&nbsp;&nbsp;&nbsp;• Offer migration tips
 """)
 
 # Q&A Section
-st.write("### 4. Ask Me Anything!")
+st.write("4. Ask Me Anything!")
 st.write("Got questions about PowerBI & Tableau? I'm here to help!")
+
 
 
 # Input field for OpenAI API key
