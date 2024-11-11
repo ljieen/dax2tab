@@ -8,33 +8,29 @@ st.title("DAX2Tab: PowerBI to Tableau Conversion Assistant")
 st.write("Welcome! Let me help you convert your PowerBI reports to Tableau dashboards.")
 
 # Section 1: Datasource Setup
-st.subheader("Datasource Setup")
+st.subheader("1. Datasource Setup")
 st.markdown("""
 • Identify key tables/columns  
 • Suggest Tableau datasource structure
 """)
 
 # Section 2: DAX to Tableau Conversion
-st.subheader("DAX to Tableau Conversion")
+st.subheader("2. DAX to Tableau Conversion")
 st.markdown("""
 • Convert DAX to Tableau calculated fields  
 • Explain conversions
 """)
 
 # Section 3: Platform Insights
-st.subheader("Platform Insights")
+st.subheader("3. Platform Insights")
 st.markdown("""
 • Highlight differences between PowerBI & Tableau  
 • Offer migration tips
 """)
 
-# Q&A Section
-st.subheader("Ask Me Anything!")
-st.write("Got questions about PowerBI & Tableau? I'm here to help!")
-
-# Q&A Section
+# Section 4: Q&A Section
 st.subheader("4. Ask Me Anything!")
-st.write("Feel free to ask any questions about PowerBI & Tableau!")
+st.write("Got questions about PowerBI & Tableau? I'm here to help!")
 
 # Input field for OpenAI API key
 api_key = st.text_input("Enter your OpenAI API Key:", type="password")
