@@ -3,12 +3,16 @@ import pandas as pd
 import openai
 from pbixray import PBIXRay
 
-# Set up OpenAI API key
-openai.api_key = st.secrets["OPENAI_API_KEY"]
-
 # Streamlit app title and description
 st.title("Power BI DAX Q&A and Data Extraction Tool")
 st.write("Upload a PBIX file to extract DAX expressions, schema, relationships, or ask questions about Power BI DAX expressions.")
+
+# Input field for OpenAI API key
+api_key = st.text_input("Enter your OpenAI API Key:", type="password")
+
+# Ensure API key is set for OpenAI
+if api_key:
+    openai.api_key = api_key
 
 # File upload widget
 uploaded_file = st.file_uploader("Choose a PBIX file", type="pbix")
@@ -91,7 +95,7 @@ def chatbot_interaction(option, file_path=None, question=None):
         st.chat_message("assistant").write(answer)
 
 # Ensure file is uploaded
-if uploaded_file:
+if api_key and uploaded_file:
     with open("temp_file.pbix", "wb") as f:
         f.write(uploaded_file.getbuffer())
 
@@ -114,3 +118,5 @@ if uploaded_file:
         else:
             st.chat_message("user").write(f"I would like to {option.lower()}.")
             chatbot_interaction(option, file_path="temp_file.pbix")
+else:
+    st.warning("Please enter your OpenAI API key to proceed.")
