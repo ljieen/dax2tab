@@ -51,15 +51,15 @@ def extract_relationships(file_path):
     except Exception as e:
         return f"Error during relationships extraction: {e}"
 
-# Function to ask questions using OpenAI's new Chat API
+# Function to ask questions using OpenAI's GPT-3.5-turbo
 def ask_openai(question):
     try:
-        response = openai.Chat.create(
+        response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": question}],
             max_tokens=150
         )
-        answer = response['choices'][0]['content'].strip()
+        answer = response['choices'][0]['message']['content'].strip()
         return answer
     except Exception as e:
         return f"Error fetching answer: {e}"
