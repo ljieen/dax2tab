@@ -4,4 +4,4 @@ pbixray
 transformers
 accelerate
 torch  # Necessary for GPU support
-openai
+openai==0.28.0
