@@ -5,8 +5,8 @@ from pbixray import PBIXRay
 
 # Streamlit app title and description
 st.title("DAX2Tab: PowerBI to Tableau Conversion Assistant")
-st.write("Welcome! I can help you convert your PowerBI reports to Tableau dashboards. Here's what I can do:
-test")
+st.write("Welcome! I can help you convert your PowerBI reports to Tableau dashboards. Here's what I can do:")
+st.write("1. Datasource Setup - Guide you in identifying relevant tables/columns from your PowerBI report. Suggest Tableau datasource structure based on your PowerBI setup.")
 
 # Input field for OpenAI API key
 api_key = st.text_input("Enter your OpenAI API Key:", type="password")
