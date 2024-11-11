@@ -12,8 +12,8 @@ uploaded_file = st.file_uploader("Choose a PBIX file", type="pbix")
 # User option for extraction
 option = st.selectbox("Select the extraction type:", ["Extract DAX Expressions", "Extract Schema", "Extract Relationships"])
 
-# Function to extract the first 5 DAX expressions from a PBIX file
-def extract_first_5_expressions(file_path):
+# Function to extract all DAX expressions from a PBIX file
+def extract_all_dax_expressions(file_path):
     try:
         model = PBIXRay(file_path)
         dax_measures = model.dax_measures
@@ -23,7 +23,7 @@ def extract_first_5_expressions(file_path):
             return None
 
         dax_measures['Expression'] = dax_measures['Expression'].str.replace('\n', '', regex=False)
-        return dax_measures[['Expression']].head(5)
+        return dax_measures[['Expression']]
     except Exception as e:
         st.error(f"Error during DAX extraction: {e}")
         return None
@@ -61,10 +61,10 @@ if uploaded_file:
             f.write(uploaded_file.getbuffer())
 
         if option == "Extract DAX Expressions":
-            first_5_expressions = extract_first_5_expressions("temp_file.pbix")
-            if first_5_expressions is not None:
-                st.write("First 5 DAX Expressions:")
-                for idx, row in first_5_expressions.iterrows():
+            all_dax_expressions = extract_all_dax_expressions("temp_file.pbix")
+            if all_dax_expressions is not None:
+                st.write("All DAX Expressions:")
+                for idx, row in all_dax_expressions.iterrows():
                     st.write(f"**DAX Expression {idx + 1}:** {row['Expression']}")
 
         elif option == "Extract Schema":
