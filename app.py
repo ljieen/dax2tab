@@ -1,29 +1,10 @@
 import streamlit as st
 import pandas as pd
-from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
+import requests
 from pbixray import PBIXRay
-import torch
-
-# Load LLaMA-2-70B-chat-hf Model and Tokenizer with Hugging Face Token from Streamlit Secrets
-@st.cache_resource  # Cache the model to prevent reloading on every interaction
-def load_llama_model():
-    model_name = "meta-llama/Llama-2-70b-chat-hf"
-    hf_token = st.secrets["HUGGINGFACE_TOKEN"]  # Access token securely from Streamlit secrets
-    tokenizer = AutoTokenizer.from_pretrained(model_name, use_auth_token=hf_token)
-    model = AutoModelForCausalLM.from_pretrained(
-        model_name, 
-        use_auth_token=hf_token, 
-        device_map="auto", 
-        torch_dtype=torch.float16
-    )
-    llama_pipeline = pipeline("text-generation", model=model, tokenizer=tokenizer, max_length=500)
-    return llama_pipeline
-
-# Initialize the LLaMA pipeline
-llama_pipeline = load_llama_model()
 
 # Streamlit app title and description
-st.title("DAX to Tableau Converter Chatbot (LLaMA-2-70B)")
+st.title("DAX to Tableau Converter Chatbot (Hugging Face Inference API)")
 st.write("Upload a PBIX file to extract DAX expressions and convert them to Tableau calculated fields.")
 
 # File upload widget
@@ -55,18 +36,26 @@ def extract_first_5_expressions(file_path):
         st.error(f"Error during DAX extraction: {e}")
         return None
 
-# Function to convert a single DAX expression to a Tableau calculated field using LLaMA-2
+# Function to convert a single DAX expression to a Tableau calculated field using Hugging Face Inference API
 def convert_dax_to_tableau(dax_expression):
     try:
+        hf_token = st.secrets["HUGGINGFACE_TOKEN"]
+        api_url = "https://api-inference.huggingface.co/models/meta-llama/Llama-2-7b-chat-hf"  # Using the 7B model
+        headers = {"Authorization": f"Bearer {hf_token}"}
+
         # Create the prompt for LLaMA
         prompt = f"Convert this DAX expression to a Tableau calculated field: {dax_expression}"
-        
-        # Generate response using LLaMA-2 model
-        response = llama_pipeline(prompt)[0]['generated_text']
-        
-        # Extract the generated text (Tableau calculated field)
-        tableau_calculated_field = response.strip()
-        return tableau_calculated_field
+        response = requests.post(api_url, headers=headers, json={"inputs": prompt})
+
+        # Check if the request was successful
+        if response.status_code == 200:
+            result = response.json()
+            tableau_calculated_field = result[0]["generated_text"].strip()
+            return tableau_calculated_field
+        else:
+            st.error(f"Error with Hugging Face API: {response.json()}")
+            return "Conversion error"
+
     except Exception as e:
         st.error(f"Error during conversion: {e}")
         return "Conversion error"
