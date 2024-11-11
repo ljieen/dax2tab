@@ -4,3 +4,4 @@ pbixray
 transformers
 accelerate
 torch  # Necessary for GPU support
+openai
