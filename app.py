@@ -1,35 +1,116 @@
 import streamlit as st
-import requests
+import pandas as pd
+import openai
+from pbixray import PBIXRay
 
-# Set up the Streamlit app title and description
-st.title("Power BI DAX Q&A Chatbot (Using Smaller Model)")
-st.write("Ask questions about Power BI DAX expressions, and I’ll try to help!")
+# Set up OpenAI API key
+openai.api_key = st.secrets["OPENAI_API_KEY"]
 
-# Function to call Hugging Face Inference API
-def ask_huggingface(question):
-    hf_token = st.secrets["HUGGINGFACE_TOKEN"]
-    api_url = "https://api-inference.huggingface.co/models/gpt2"  # Smaller model to fit within limits
-    headers = {"Authorization": f"Bearer {hf_token}"}
+# Streamlit app title and description
+st.title("Power BI DAX Q&A and Data Extraction Tool")
+st.write("Upload a PBIX file to extract DAX expressions, schema, relationships, or ask questions about Power BI DAX expressions.")
 
-    payload = {"inputs": question}
-    response = requests.post(api_url, headers=headers, json=payload)
+# File upload widget
+uploaded_file = st.file_uploader("Choose a PBIX file", type="pbix")
 
-    if response.status_code == 200:
-        result = response.json()
-        return result[0]["generated_text"].strip()
-    else:
-        return f"Error: {response.status_code} - {response.json()}"
+# Function to extract all DAX expressions from a PBIX file
+def extract_all_dax_expressions(file_path):
+    try:
+        model = PBIXRay(file_path)
+        dax_measures = model.dax_measures
+        if dax_measures.empty or 'Expression' not in dax_measures.columns:
+            return "No DAX expressions found."
+        dax_measures['Expression'] = dax_measures['Expression'].str.replace('\n', '', regex=False)
+        return dax_measures[['Expression']]
+    except Exception as e:
+        return f"Error during DAX extraction: {e}"
 
-# Chatbot interaction
-def chatbot_interaction(question):
-    answer = ask_huggingface(question)
-    st.chat_message("assistant").write(answer)
+# Function to extract schema from the PBIX file
+def extract_schema(file_path):
+    try:
+        model = PBIXRay(file_path)
+        schema = model.schema
+        if schema.empty:
+            return "No schema found."
+        return schema
+    except Exception as e:
+        return f"Error during schema extraction: {e}"
 
-# Main app logic
-st.write("## Chat Interface")
-question = st.text_input("Type your question about Power BI DAX expressions:")
+# Function to extract relationships from the PBIX file
+def extract_relationships(file_path):
+    try:
+        model = PBIXRay(file_path)
+        relationships = model.relationships
+        if relationships.empty:
+            return "No relationships found."
+        return relationships
+    except Exception as e:
+        return f"Error during relationships extraction: {e}"
 
-if st.button("Ask"):
-    if question:
-        st.chat_message("user").write(question)
-        chatbot_interaction(question)
+# Function to ask questions using OpenAI's GPT-3.5-turbo
+def ask_openai(question):
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": question}],
+            max_tokens=150
+        )
+        answer = response['choices'][0]['message']['content'].strip()
+        return answer
+    except Exception as e:
+        return f"Error fetching answer: {e}"
+
+# Chatbot interaction logic
+def chatbot_interaction(option, file_path=None, question=None):
+    if option == "Extract DAX Expressions" and file_path:
+        dax_expressions = extract_all_dax_expressions(file_path)
+        if isinstance(dax_expressions, pd.DataFrame):
+            for idx, row in dax_expressions.iterrows():
+                st.chat_message("assistant").write(f"**DAX Expression {idx + 1}:** {row['Expression']}")
+        else:
+            st.chat_message("assistant").write(dax_expressions)
+
+    elif option == "Extract Schema" and file_path:
+        schema = extract_schema(file_path)
+        if isinstance(schema, pd.DataFrame):
+            st.chat_message("assistant").write("Here is the schema:")
+            st.dataframe(schema)
+        else:
+            st.chat_message("assistant").write(schema)
+
+    elif option == "Extract Relationships" and file_path:
+        relationships = extract_relationships(file_path)
+        if isinstance(relationships, pd.DataFrame):
+            st.chat_message("assistant").write("Here are the relationships:")
+            st.dataframe(relationships)
+        else:
+            st.chat_message("assistant").write(relationships)
+
+    elif option == "Ask a Question" and question:
+        answer = ask_openai(question)
+        st.chat_message("assistant").write(answer)
+
+# Ensure file is uploaded
+if uploaded_file:
+    with open("temp_file.pbix", "wb") as f:
+        f.write(uploaded_file.getbuffer())
+
+    # Show introductory message in chat
+    st.chat_message("assistant").write("Hello! You can ask me to extract DAX expressions, schema, relationships, or ask a question about Power BI DAX expressions.")
+
+    # Option selection for chat interaction
+    option = st.selectbox("Choose an action:", ["Extract DAX Expressions", "Extract Schema", "Extract Relationships", "Ask a Question"])
+
+    # If the user selects "Ask a Question," display a text input for the question
+    question = None
+    if option == "Ask a Question":
+        question = st.text_input("Enter your question about Power BI DAX expressions:")
+
+    # Button to submit the selection or question
+    if st.button("Submit"):
+        if option == "Ask a Question" and question:
+            st.chat_message("user").write(question)
+            chatbot_interaction(option, question=question)
+        else:
+            st.chat_message("user").write(f"I would like to {option.lower()}.")
+            chatbot_interaction(option, file_path="temp_file.pbix")
