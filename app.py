@@ -4,12 +4,18 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 from pbixray import PBIXRay
 import torch
 
-# Load LLaMA-2-70B-chat-hf Model and Tokenizer
+# Load LLaMA-2-70B-chat-hf Model and Tokenizer with Hugging Face Token from Streamlit Secrets
 @st.cache_resource  # Cache the model to prevent reloading on every interaction
 def load_llama_model():
     model_name = "meta-llama/Llama-2-70b-chat-hf"
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModelForCausalLM.from_pretrained(model_name, device_map="auto", torch_dtype=torch.float16)
+    hf_token = st.secrets["HUGGINGFACE_TOKEN"]  # Access token securely from Streamlit secrets
+    tokenizer = AutoTokenizer.from_pretrained(model_name, use_auth_token=hf_token)
+    model = AutoModelForCausalLM.from_pretrained(
+        model_name, 
+        use_auth_token=hf_token, 
+        device_map="auto", 
+        torch_dtype=torch.float16
+    )
     llama_pipeline = pipeline("text-generation", model=model, tokenizer=tokenizer, max_length=500)
     return llama_pipeline
 
