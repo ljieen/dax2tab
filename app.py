@@ -4,8 +4,8 @@ import openai
 from pbixray import PBIXRay
 
 # Streamlit app title and description
-st.title("Power BI DAX Q&A and Data Extraction Tool")
-st.write("Upload a PBIX file to extract DAX expressions, schema, relationships, or ask questions about Power BI DAX expressions.")
+st.title("DAX2Tab: PowerBI to Tableau Conversion Assistant")
+st.write("Welcome! I can help you convert your PowerBI reports to Tableau dashboards. Here's what I can do:")
 
 # Input field for OpenAI API key
 api_key = st.text_input("Enter your OpenAI API Key:", type="password")
