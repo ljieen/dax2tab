@@ -8,22 +8,18 @@ from pbixray import PBIXRay
 st.title("DAX2Tab: PowerBI to Tableau Conversion Assistant")
 st.write("Welcome! Let me help you convert your PowerBI reports to Tableau dashboards.")
 
-# Create two columns for sections 1 and 2
-col1, col2 = st.columns(2)
 
-with col1:
-    st.subheader("1. Datasource Setup")
-    st.write("""
-        • Identify key tables/columns  
-        • Suggest Tableau datasource structure
-    """)
+st.subheader("1. Datasource Setup")
+st.write("""
+• Identify key tables/columns  
+• Suggest Tableau datasource structure
+""")
 
-with col2:
-    st.subheader("2. DAX to Tableau Conversion")
-    st.write("""
-        • Convert DAX to Tableau calculated fields  
-        • Explain conversions
-    """)
+st.subheader("2. DAX to Tableau Conversion")
+st.write("""
+• Convert DAX to Tableau calculated fields  
+• Explain conversions
+""")
 
 # Section 3: Platform Insights
 st.subheader("3. Platform Insights")
