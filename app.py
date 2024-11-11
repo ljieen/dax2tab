@@ -3,30 +3,34 @@ import pandas as pd
 import openai
 from pbixray import PBIXRay
 
-# Streamlit app title and description
+# Streamlit Title and Welcome Message
 st.title("DAX2Tab: PowerBI to Tableau Conversion Assistant")
-st.write("Welcome! I can help you convert your PowerBI reports to Tableau dashboards. Here's what I can do:")
+st.write("Welcome! Let me help you convert your PowerBI reports to Tableau dashboards.")
 
 # Section 1: Datasource Setup
-st.subheader("1. Datasource Setup")
+st.subheader("Datasource Setup")
 st.markdown("""
-• Guide you in identifying relevant tables/columns from your PowerBI report  
-• Suggest Tableau datasource structure based on your PowerBI setup
+• Identify key tables/columns  
+• Suggest Tableau datasource structure
 """)
 
 # Section 2: DAX to Tableau Conversion
-st.subheader("2. DAX to Tableau Conversion")
+st.subheader("DAX to Tableau Conversion")
 st.markdown("""
-• Convert your PowerBI DAX expressions to Tableau calculated fields  
-• Provide explanations for the conversions
+• Convert DAX to Tableau calculated fields  
+• Explain conversions
 """)
 
-# Section 3: PowerBI vs Tableau Insights
-st.subheader("3. PowerBI vs Tableau Insights")
+# Section 3: Platform Insights
+st.subheader("Platform Insights")
 st.markdown("""
-• Highlight key differences between the platforms  
-• Offers practical migration tips
+• Highlight differences between PowerBI & Tableau  
+• Offer migration tips
 """)
+
+# Q&A Section
+st.subheader("Ask Me Anything!")
+st.write("Got questions about PowerBI & Tableau? I'm here to help!")
 
 # Q&A Section
 st.subheader("4. Ask Me Anything!")
