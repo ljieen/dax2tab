@@ -9,7 +9,7 @@ st.title("DAX2Tab: PowerBI to Tableau Conversion Assistant")
 st.write("Welcome! Let me help you convert your PowerBI reports to Tableau dashboards.")
 
 # Section 1: Datasource Setup
-st.write("### 1. Datasource Setup")
+st.write("1. Datasource Setup")
 st.write("""
     • Identify key tables/columns  
     • Suggest Tableau datasource structure
