@@ -8,31 +8,33 @@ from pbixray import PBIXRay
 st.title("DAX2Tab: PowerBI to Tableau Conversion Assistant")
 st.write("Welcome! Let me help you convert your PowerBI reports to Tableau dashboards.")
 
-# Section 1: Datasource Setup
-st.write("1. Datasource Setup")
-st.markdown("""
-&nbsp;&nbsp;&nbsp;&nbsp;• Identify key tables/columns  
-&nbsp;&nbsp;&nbsp;&nbsp;• Suggest Tableau datasource structure
-""")
+# Create two columns for sections 1 and 2
+col1, col2 = st.columns(2)
 
-# Section 2: DAX to Tableau Conversion
-st.write("2. DAX to Tableau Conversion")
-st.markdown("""
-&nbsp;&nbsp;&nbsp;&nbsp;• Convert DAX to Tableau calculated fields  
-&nbsp;&nbsp;&nbsp;&nbsp;• Explain conversions
-""")
+with col1:
+    st.subheader("1. Datasource Setup")
+    st.write("""
+        • Identify key tables/columns  
+        • Suggest Tableau datasource structure
+    """)
+
+with col2:
+    st.subheader("2. DAX to Tableau Conversion")
+    st.write("""
+        • Convert DAX to Tableau calculated fields  
+        • Explain conversions
+    """)
 
 # Section 3: Platform Insights
-st.write("3. Platform Insights")
-st.markdown("""
-&nbsp;&nbsp;&nbsp;&nbsp;• Highlight differences between PowerBI & Tableau  
-&nbsp;&nbsp;&nbsp;&nbsp;• Offer migration tips
+st.subheader("3. Platform Insights")
+st.write("""
+    • Highlight differences between PowerBI & Tableau  
+    • Offer migration tips
 """)
 
 # Q&A Section
-st.write("4. Ask Me Anything!")
+st.subheader("4. Ask Me Anything!")
 st.write("Got questions about PowerBI & Tableau? I'm here to help!")
-
 
 
 # Input field for OpenAI API key
