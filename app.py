@@ -124,3 +124,23 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
                 st.write(dax_expressions if isinstance(dax_expressions, str) else "No DAX expressions found.")
         else:
             st.warning("Please upload a PBIX file to proceed.")
+
+# Block for Relationships Extraction
+with st.expander("🔗 3. Relationships Extraction"):
+    st.write("Extract relationships from your Power BI data model to help you maintain data integrity and relationships in Tableau.")
+
+    # Function to extract relationships from the PBIX file
+    def extract_relationships(file_path):
+        try:
+            model = PBIXRay(file_path)
+            relationships = model.relationships
+            if relationships.empty:
+                return "No relationships found."
+            return relationships
+        except Exception as e:
+            return f"Error during relationships extraction: {e}"
+
+    if st.button("Extract Relationships"):
+        if uploaded_file:
+            with open("temp_file.pbix", "wb") as f:
+                f.write(uploaded_file.getbuff
