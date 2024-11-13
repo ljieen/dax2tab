@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from pbixray import PBIXRay
+import io  # To handle in-memory file for download
 
 # Title and Welcome Message
 st.title("DAX2Tab: PowerBI to Tableau Conversion Assistant")
@@ -73,7 +74,7 @@ if "show_question_input" not in st.session_state:
 # Display options in a 2x2 grid
 col1, col2 = st.columns(2)
 
-# Option 1: Extract DAX Expressions with download functionality
+# Option 1: Extract DAX Expressions with Excel download functionality
 with col1:
     if st.button("Extract DAX Expressions"):
         if uploaded_file:
@@ -81,20 +82,21 @@ with col1:
                 f.write(uploaded_file.getbuffer())
             dax_expressions = extract_all_dax_expressions("temp_file.pbix")
             if isinstance(dax_expressions, pd.DataFrame):
-                st.write("DAX Expressions:")
-                for idx, row in dax_expressions.iterrows():
-                    st.write(f"**DAX Expression {idx + 1}:** {row['Expression']}")
+                st.write("DAX Expressions Table:")
+                st.table(dax_expressions)  # Display DAX expressions as a table
 
-                # Prepare DAX expressions for download
-                dax_list = dax_expressions['Expression'].tolist()
-                dax_text = "\n".join(dax_list)
+                # Prepare DAX expressions for download as an Excel file
+                excel_buffer = io.BytesIO()
+                with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
+                    dax_expressions.to_excel(writer, index=False, sheet_name='DAX Expressions')
+                    writer.save()
                 
-                # Provide download button for DAX expressions as a text file
+                # Provide download button for DAX expressions as an Excel file
                 st.download_button(
-                    label="Download DAX Expressions as Text",
-                    data=dax_text,
-                    file_name="dax_expressions.txt",
-                    mime="text/plain"
+                    label="Download DAX Expressions as Excel",
+                    data=excel_buffer,
+                    file_name="dax_expressions.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 )
             else:
                 st.write(dax_expressions)
