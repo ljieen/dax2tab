@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from pbixray import PBIXRay
-import io  # To handle in-memory file for download
+import io  # For handling in-memory files
 
 # Title and Welcome Message
 st.title("DAX2Tab: PowerBI to Tableau Conversion Assistant")
@@ -45,29 +45,7 @@ def extract_all_dax_expressions(file_path):
     except Exception as e:
         return f"Error during DAX extraction: {e}"
 
-# Function to extract schema from the PBIX file
-def extract_schema(file_path):
-    try:
-        model = PBIXRay(file_path)
-        schema = model.schema
-        if schema.empty:
-            return "No schema found."
-        return schema
-    except Exception as e:
-        return f"Error during schema extraction: {e}"
-
-# Function to extract relationships from the PBIX file
-def extract_relationships(file_path):
-    try:
-        model = PBIXRay(file_path)
-        relationships = model.relationships
-        if relationships.empty:
-            return "No relationships found."
-        return relationships
-    except Exception as e:
-        return f"Error during relationships extraction: {e}"
-
-# Initialize session state for Ask a Question button
+# Initialize session state for "Ask a Question" button
 if "show_question_input" not in st.session_state:
     st.session_state["show_question_input"] = False
 
@@ -89,12 +67,11 @@ with col1:
                 excel_buffer = io.BytesIO()
                 with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
                     dax_expressions.to_excel(writer, index=False, sheet_name='DAX Expressions')
-                    writer.save()
                 
                 # Provide download button for DAX expressions as an Excel file
                 st.download_button(
                     label="Download DAX Expressions as Excel",
-                    data=excel_buffer,
+                    data=excel_buffer.getvalue(),
                     file_name="dax_expressions.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 )
@@ -102,45 +79,3 @@ with col1:
                 st.write(dax_expressions)
         else:
             st.warning("Please upload a PBIX file to proceed.")
-
-# Option 2: Extract Schema
-with col2:
-    if st.button("Extract Schema"):
-        if uploaded_file:
-            with open("temp_file.pbix", "wb") as f:
-                f.write(uploaded_file.getbuffer())
-            schema = extract_schema("temp_file.pbix")
-            if isinstance(schema, pd.DataFrame):
-                st.write("Schema:")
-                st.dataframe(schema)
-            else:
-                st.write(schema)
-        else:
-            st.warning("Please upload a PBIX file to proceed.")
-
-# Option 3: Extract Relationships
-with col1:
-    if st.button("Extract Relationships"):
-        if uploaded_file:
-            with open("temp_file.pbix", "wb") as f:
-                f.write(uploaded_file.getbuffer())
-            relationships = extract_relationships("temp_file.pbix")
-            if isinstance(relationships, pd.DataFrame):
-                st.write("Relationships:")
-                st.dataframe(relationships)
-            else:
-                st.write(relationships)
-        else:
-            st.warning("Please upload a PBIX file to proceed.")
-
-# Option 4: Ask a Question
-with col2:
-    if st.button("Ask a Question"):
-        st.session_state["show_question_input"] = True  # Set flag to show the input field
-
-# Show the question input field if the "Ask a Question" button was clicked
-if st.session_state["show_question_input"]:
-    question = st.text_input("Enter your question about Power BI DAX expressions:")
-    if question:
-        st.write("**You asked:**", question)
-        st.write("Answer functionality currently requires an AI model. Add a model if needed.")
