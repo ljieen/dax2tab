@@ -1,13 +1,10 @@
 import streamlit as st
 import pandas as pd
-import openai
 from pbixray import PBIXRay
-
 
 # Title and Welcome Message
 st.title("DAX2Tab: PowerBI to Tableau Conversion Assistant")
 st.write("Welcome! Let me help you convert your PowerBI reports to Tableau dashboards.")
-
 
 st.subheader("1. Datasource Setup")
 st.write("""
@@ -31,14 +28,6 @@ st.write("""
 # Q&A Section
 st.subheader("4. Ask Me Anything!")
 st.write("Got questions about PowerBI & Tableau? I'm here to help!")
-
-
-# Input field for OpenAI API key
-api_key = st.text_input("Enter your OpenAI API Key:", type="password")
-
-# Ensure API key is set for OpenAI
-if api_key:
-    openai.api_key = api_key
 
 # File upload widget
 uploaded_file = st.file_uploader("Choose a PBIX file", type="pbix")
@@ -77,72 +66,61 @@ def extract_relationships(file_path):
     except Exception as e:
         return f"Error during relationships extraction: {e}"
 
-# Function to ask questions using OpenAI's GPT-3.5-turbo
-def ask_openai(question):
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": question}],
-            max_tokens=150
-        )
-        answer = response['choices'][0]['message']['content'].strip()
-        return answer
-    except Exception as e:
-        return f"Error fetching answer: {e}"
+# Display options in a 2x2 grid
+col1, col2 = st.columns(2)
 
-# Chatbot interaction logic
-def chatbot_interaction(option, file_path=None, question=None):
-    if option == "Extract DAX Expressions" and file_path:
-        dax_expressions = extract_all_dax_expressions(file_path)
-        if isinstance(dax_expressions, pd.DataFrame):
-            for idx, row in dax_expressions.iterrows():
-                st.chat_message("assistant").write(f"**DAX Expression {idx + 1}:** {row['Expression']}")
+# Option 1: Extract DAX Expressions
+with col1:
+    if st.button("Extract DAX Expressions"):
+        if uploaded_file:
+            with open("temp_file.pbix", "wb") as f:
+                f.write(uploaded_file.getbuffer())
+            dax_expressions = extract_all_dax_expressions("temp_file.pbix")
+            if isinstance(dax_expressions, pd.DataFrame):
+                st.write("DAX Expressions:")
+                for idx, row in dax_expressions.iterrows():
+                    st.write(f"**DAX Expression {idx + 1}:** {row['Expression']}")
+            else:
+                st.write(dax_expressions)
         else:
-            st.chat_message("assistant").write(dax_expressions)
+            st.warning("Please upload a PBIX file to proceed.")
 
-    elif option == "Extract Schema" and file_path:
-        schema = extract_schema(file_path)
-        if isinstance(schema, pd.DataFrame):
-            st.chat_message("assistant").write("Here is the schema:")
-            st.dataframe(schema)
+# Option 2: Extract Schema
+with col2:
+    if st.button("Extract Schema"):
+        if uploaded_file:
+            with open("temp_file.pbix", "wb") as f:
+                f.write(uploaded_file.getbuffer())
+            schema = extract_schema("temp_file.pbix")
+            if isinstance(schema, pd.DataFrame):
+                st.write("Schema:")
+                st.dataframe(schema)
+            else:
+                st.write(schema)
         else:
-            st.chat_message("assistant").write(schema)
+            st.warning("Please upload a PBIX file to proceed.")
 
-    elif option == "Extract Relationships" and file_path:
-        relationships = extract_relationships(file_path)
-        if isinstance(relationships, pd.DataFrame):
-            st.chat_message("assistant").write("Here are the relationships:")
-            st.dataframe(relationships)
+# Option 3: Extract Relationships
+with col1:
+    if st.button("Extract Relationships"):
+        if uploaded_file:
+            with open("temp_file.pbix", "wb") as f:
+                f.write(uploaded_file.getbuffer())
+            relationships = extract_relationships("temp_file.pbix")
+            if isinstance(relationships, pd.DataFrame):
+                st.write("Relationships:")
+                st.dataframe(relationships)
+            else:
+                st.write(relationships)
         else:
-            st.chat_message("assistant").write(relationships)
+            st.warning("Please upload a PBIX file to proceed.")
 
-    elif option == "Ask a Question" and question:
-        answer = ask_openai(question)
-        st.chat_message("assistant").write(answer)
-
-# Ensure file is uploaded
-if api_key and uploaded_file:
-    with open("temp_file.pbix", "wb") as f:
-        f.write(uploaded_file.getbuffer())
-
-    # Show introductory message in chat
-    st.chat_message("assistant").write("Hello! You can ask me to extract DAX expressions, schema, relationships, or ask a question about Power BI DAX expressions.")
-
-    # Option selection for chat interaction
-    option = st.selectbox("Choose an action:", ["Extract DAX Expressions", "Extract Schema", "Extract Relationships", "Ask a Question"])
-
-    # If the user selects "Ask a Question," display a text input for the question
-    question = None
-    if option == "Ask a Question":
-        question = st.text_input("Enter your question about Power BI DAX expressions:")
-
-    # Button to submit the selection or question
-    if st.button("Submit"):
-        if option == "Ask a Question" and question:
-            st.chat_message("user").write(question)
-            chatbot_interaction(option, question=question)
+# Option 4: Ask a Question (without OpenAI integration)
+with col2:
+    question = st.text_input("Enter your question about Power BI DAX expressions:")
+    if st.button("Ask a Question"):
+        if question:
+            st.write("**You asked:**", question)
+            st.write("Answer functionality currently requires an AI model. Add a model if needed.")
         else:
-            st.chat_message("user").write(f"I would like to {option.lower()}.")
-            chatbot_interaction(option, file_path="temp_file.pbix")
-else:
-    st.warning("Please enter your OpenAI API key to proceed.")
+            st.warning("Please enter a question.")
