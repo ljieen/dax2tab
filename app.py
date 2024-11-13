@@ -3,23 +3,20 @@ import pandas as pd
 from pbixray import PBIXRay
 import io
 import openai
+import os
+
+# Set OpenAI API key from environment variable
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # Title and Welcome Message
 st.title("✨ DAX2Tab: PowerBI to Tableau Conversion Assistant")
 st.write("Welcome! Let me help you convert your PowerBI reports to Tableau dashboards.")
 
-# Section for entering OpenAI API Key
-with st.expander("🔑 API Key Setup"):
-    st.write("To enable the DAX to Tableau conversion feature, please enter your OpenAI API Key below.")
-    api_key_input = st.text_input("Enter your OpenAI API Key:", type="password")
-
-    if api_key_input:
-        st.session_state["OPENAI_API_KEY"] = api_key_input
-        openai.api_key = api_key_input
-        st.success("API Key set successfully!")
-
-if "OPENAI_API_KEY" not in st.session_state:
-    st.warning("Please enter your OpenAI API Key above to enable DAX to Tableau conversion.")
+# Check if OpenAI API key is set
+if not openai.api_key:
+    st.error("OpenAI API key is not set. Please configure it in the environment variables.")
+else:
+    st.success("OpenAI API key configured successfully!")
 
 # Sidebar for uploading file
 with st.sidebar:
@@ -47,7 +44,7 @@ with st.expander("🔍 1. Datasource Setup"):
     if st.button("Extract Schema"):
         if uploaded_file:
             with open("temp_file.pbix", "wb") as f:
-                f.write(uploaded_file.getbuffer())  # Corrected line with closing parenthesis
+                f.write(uploaded_file.getbuffer())
             schema = extract_schema("temp_file.pbix")
             if isinstance(schema, pd.DataFrame):
                 st.write("Schema:")
@@ -91,8 +88,8 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
 
     # Extract and Convert the First 5 DAX Expressions
     if st.button("Extract and Convert First 5 DAX Expressions to Tableau Calculated Fields"):
-        if not st.session_state.get("OPENAI_API_KEY"):
-            st.error("Please enter your OpenAI API Key to use the conversion feature.")
+        if not openai.api_key:
+            st.error("OpenAI API key is not configured.")
         elif uploaded_file:
             with open("temp_file.pbix", "wb") as f:
                 f.write(uploaded_file.getbuffer())
