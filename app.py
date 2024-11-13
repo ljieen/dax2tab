@@ -47,7 +47,7 @@ with st.expander("🔍 1. Datasource Setup"):
     if st.button("Extract Schema"):
         if uploaded_file:
             with open("temp_file.pbix", "wb") as f:
-                f.write(uploaded_file.getbuffer())
+                f.write(uploaded_file.getbuffer())  # Corrected line with closing parenthesis
             schema = extract_schema("temp_file.pbix")
             if isinstance(schema, pd.DataFrame):
                 st.write("Schema:")
@@ -143,4 +143,34 @@ with st.expander("🔗 3. Relationships Extraction"):
     if st.button("Extract Relationships"):
         if uploaded_file:
             with open("temp_file.pbix", "wb") as f:
-                f.write(uploaded_file.getbuff
+                f.write(uploaded_file.getbuffer())
+            relationships = extract_relationships("temp_file.pbix")
+            if isinstance(relationships, pd.DataFrame):
+                st.write("Relationships:")
+                st.dataframe(relationships)
+            else:
+                st.write(relationships)
+        else:
+            st.warning("Please upload a PBIX file to proceed.")
+
+# Block for Q&A Section with ChatGPT
+with st.expander("💬 4. Ask Me Anything!"):
+    st.write("Have any questions about Power BI, DAX expressions, or Tableau? Ask here, and I'll do my best to help you!")
+
+    question = st.text_input("Enter your question about Power BI DAX expressions or Tableau:")
+    if question:
+        with st.spinner("Generating answer..."):
+            try:
+                response = openai.ChatCompletion.create(
+                    model="gpt-4",
+                    messages=[
+                        {"role": "system", "content": "You are an assistant knowledgeable in Power BI DAX expressions and Tableau."},
+                        {"role": "user", "content": question}
+                    ],
+                    max_tokens=500
+                )
+                answer = response.choices[0].message['content'].strip()
+                st.write("**Answer:**")
+                st.write(answer)
+            except Exception as e:
+                st.error(f"Error during question processing: {e}")
