@@ -124,8 +124,8 @@ with col1:
         else:
             st.warning("Please upload a PBIX file to proceed.")
 
-# Option to Extract and Convert DAX Expressions to Tableau Calculated Fields
-if st.button("Extract and Convert DAX Expressions to Tableau Calculated Fields"):
+# Option to Extract and Convert the First DAX Expression to Tableau Calculated Field
+if st.button("Extract and Convert First DAX Expression to Tableau Calculated Field"):
     if not st.session_state.get("OPENAI_API_KEY"):
         st.error("Please enter your OpenAI API Key to use the conversion feature.")
     elif uploaded_file:
@@ -133,30 +133,24 @@ if st.button("Extract and Convert DAX Expressions to Tableau Calculated Fields")
             f.write(uploaded_file.getbuffer())
         dax_expressions = extract_all_dax_expressions("temp_file.pbix")
         
-        if isinstance(dax_expressions, pd.DataFrame):
+        if isinstance(dax_expressions, pd.DataFrame) and not dax_expressions.empty:
             st.write("DAX Expressions Table:")
             st.table(dax_expressions)  # Display DAX expressions as a table
             
-            # Convert each DAX expression to Tableau equivalent
-            dax_expressions['Tableau Calculated Field'] = dax_expressions['Expression'].apply(convert_dax_to_tableau)
+            # Get the first DAX expression
+            first_dax_expression = dax_expressions['Expression'].iloc[0]
             
-            # Display the converted expressions
-            st.write("Converted DAX Expressions to Tableau Calculated Fields:")
-            st.table(dax_expressions[['Expression', 'Tableau Calculated Field']])
+            # Convert the first DAX expression to Tableau equivalent
+            tableau_calculated_field = convert_dax_to_tableau(first_dax_expression)
             
-            # Prepare for CSV download
-            csv_buffer = io.StringIO()
-            dax_expressions.to_csv(csv_buffer, index=False)
-            
-            # Provide download button for DAX expressions as a CSV file
-            st.download_button(
-                label="Download Converted DAX Expressions as CSV",
-                data=csv_buffer.getvalue(),
-                file_name="converted_dax_expressions.csv",
-                mime="text/csv"
-            )
+            # Display the converted expression
+            st.write("Converted First DAX Expression to Tableau Calculated Field:")
+            st.write({
+                "DAX Expression": first_dax_expression,
+                "Tableau Calculated Field": tableau_calculated_field
+            })
         else:
-            st.write(dax_expressions)
+            st.write(dax_expressions if isinstance(dax_expressions, str) else "No DAX expressions found.")
     else:
         st.warning("Please upload a PBIX file to proceed.")
 
