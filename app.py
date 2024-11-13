@@ -59,7 +59,7 @@ with st.expander("🔍 1. Datasource Setup"):
 
 # Block for Extracting and Converting DAX Expressions
 with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
-    st.write("Extract DAX expressions from your Power BI file and convert them into Tableau-compatible calculated fields for seamless migration.")
+    st.write("Extract the first five DAX expressions from your Power BI file and convert them into Tableau-compatible calculated fields for seamless migration.")
 
     # Function to extract all DAX expressions from a PBIX file
     def extract_all_dax_expressions(file_path):
@@ -89,33 +89,8 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
         except Exception as e:
             return f"Error during conversion: {e}"
 
-    # Extract DAX Expressions
-    if st.button("Extract DAX Expressions"):
-        if uploaded_file:
-            with open("temp_file.pbix", "wb") as f:
-                f.write(uploaded_file.getbuffer())
-            dax_expressions = extract_all_dax_expressions("temp_file.pbix")
-            if isinstance(dax_expressions, pd.DataFrame):
-                st.write("DAX Expressions Table:")
-                st.table(dax_expressions)
-
-                # Prepare DAX expressions for download as a CSV file
-                csv_buffer = io.StringIO()
-                dax_expressions.to_csv(csv_buffer, index=False)
-                
-                st.download_button(
-                    label="Download DAX Expressions as CSV",
-                    data=csv_buffer.getvalue(),
-                    file_name="dax_expressions.csv",
-                    mime="text/csv"
-                )
-            else:
-                st.write(dax_expressions)
-        else:
-            st.warning("Please upload a PBIX file to proceed.")
-
-    # Extract and Convert the First DAX Expression
-    if st.button("Extract and Convert First DAX Expression to Tableau Calculated Field"):
+    # Extract and Convert the First 5 DAX Expressions
+    if st.button("Extract and Convert First 5 DAX Expressions to Tableau Calculated Fields"):
         if not st.session_state.get("OPENAI_API_KEY"):
             st.error("Please enter your OpenAI API Key to use the conversion feature.")
         elif uploaded_file:
@@ -126,89 +101,26 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
             if isinstance(dax_expressions, pd.DataFrame) and not dax_expressions.empty:
                 st.write("DAX Expressions Table:")
                 st.table(dax_expressions)
-                
-                # Get the first DAX expression
-                first_dax_expression = dax_expressions['Expression'].iloc[0]
-                
-                # Convert the first DAX expression to Tableau equivalent
-                tableau_calculated_field = convert_dax_to_tableau(first_dax_expression)
-                
-                # Display the converted expression
-                st.write("Converted First DAX Expression to Tableau Calculated Field:")
-                st.write({
-                    "DAX Expression": first_dax_expression,
-                    "Tableau Calculated Field": tableau_calculated_field
-                })
-                
-                # Follow-up Question Option
-                follow_up_question = st.text_input("Ask a follow-up question about this conversion:")
-                if follow_up_question:
-                    try:
-                        with st.spinner("Generating follow-up answer..."):
-                            response = openai.ChatCompletion.create(
-                                model="gpt-4",
-                                messages=[
-                                    {"role": "system", "content": "You are an assistant knowledgeable in Power BI DAX expressions and Tableau."},
-                                    {"role": "user", "content": follow_up_question}
-                                ],
-                                max_tokens=500
-                            )
-                            follow_up_answer = response.choices[0].message['content'].strip()
-                        st.write("**Follow-up Answer:**")
-                        st.write(follow_up_answer)
-                    except Exception as e:
-                        st.error(f"Error during follow-up question processing: {e}")
+
+                # Limit to the first five expressions
+                first_five_dax_expressions = dax_expressions['Expression'].head(5)
+
+                # Convert each of the first five DAX expressions to Tableau calculated fields
+                tableau_calculated_fields = []
+                for i, dax_expression in enumerate(first_five_dax_expressions, 1):
+                    tableau_calculated_field = convert_dax_to_tableau(dax_expression)
+                    tableau_calculated_fields.append({
+                        "DAX Expression": dax_expression,
+                        "Tableau Calculated Field": tableau_calculated_field
+                    })
+
+                # Display converted expressions
+                for i, conversion in enumerate(tableau_calculated_fields, 1):
+                    st.write(f"### Conversion {i}")
+                    st.write("**DAX Expression:**", conversion["DAX Expression"])
+                    st.write("**Tableau Calculated Field:**", conversion["Tableau Calculated Field"])
+                    st.write("---")
             else:
                 st.write(dax_expressions if isinstance(dax_expressions, str) else "No DAX expressions found.")
         else:
             st.warning("Please upload a PBIX file to proceed.")
-
-# Block for Relationships Extraction
-with st.expander("🔗 3. Relationships Extraction"):
-    st.write("Extract relationships from your Power BI data model to help you maintain data integrity and relationships in Tableau.")
-
-    # Function to extract relationships from the PBIX file
-    def extract_relationships(file_path):
-        try:
-            model = PBIXRay(file_path)
-            relationships = model.relationships
-            if relationships.empty:
-                return "No relationships found."
-            return relationships
-        except Exception as e:
-            return f"Error during relationships extraction: {e}"
-
-    if st.button("Extract Relationships"):
-        if uploaded_file:
-            with open("temp_file.pbix", "wb") as f:
-                f.write(uploaded_file.getbuffer())
-            relationships = extract_relationships("temp_file.pbix")
-            if isinstance(relationships, pd.DataFrame):
-                st.write("Relationships:")
-                st.dataframe(relationships)
-            else:
-                st.write(relationships)
-        else:
-            st.warning("Please upload a PBIX file to proceed.")
-
-# Block for Q&A Section with ChatGPT
-with st.expander("💬 4. Ask Me Anything!"):
-    st.write("Have any questions about Power BI, DAX expressions, or Tableau? Ask here, and I'll do my best to help you!")
-
-    question = st.text_input("Enter your question about Power BI DAX expressions or Tableau:")
-    if question:
-        with st.spinner("Generating answer..."):
-            try:
-                response = openai.ChatCompletion.create(
-                    model="gpt-4",
-                    messages=[
-                        {"role": "system", "content": "You are an assistant knowledgeable in Power BI DAX expressions and Tableau."},
-                        {"role": "user", "content": question}
-                    ],
-                    max_tokens=500
-                )
-                answer = response.choices[0].message['content'].strip()
-                st.write("**Answer:**")
-                st.write(answer)
-            except Exception as e:
-                st.error(f"Error during question processing: {e}")
