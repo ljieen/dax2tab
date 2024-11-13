@@ -188,14 +188,26 @@ with col1:
 if "show_question_input" not in st.session_state:
     st.session_state["show_question_input"] = False
 
-# Option 4: Ask a Question
+# Option 4: Ask a Question to ChatGPT about DAX and Tableau
 with col2:
     if st.button("Ask a Question"):
         st.session_state["show_question_input"] = True  # Set flag to show the input field
 
 # Show the question input field if the "Ask a Question" button was clicked
 if st.session_state["show_question_input"]:
-    question = st.text_input("Enter your question about Power BI DAX expressions:")
+    question = st.text_input("Enter your question about Power BI DAX expressions or Tableau:")
     if question:
-        st.write("**You asked:**", question)
-        st.write("Answer functionality currently requires an AI model. Add a model if needed.")
+        # Send the question to ChatGPT
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You are an assistant knowledgeable in Power BI DAX expressions and Tableau."},
+                {"role": "user", "content": question}
+            ],
+            max_tokens=200
+        )
+        answer = response.choices[0].message['content'].strip()
+        
+        # Display the response
+        st.write("**Answer:**")
+        st.write(answer)
