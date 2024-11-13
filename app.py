@@ -73,7 +73,7 @@ if "show_question_input" not in st.session_state:
 # Display options in a 2x2 grid
 col1, col2 = st.columns(2)
 
-# Option 1: Extract DAX Expressions
+# Option 1: Extract DAX Expressions with download functionality
 with col1:
     if st.button("Extract DAX Expressions"):
         if uploaded_file:
@@ -84,6 +84,18 @@ with col1:
                 st.write("DAX Expressions:")
                 for idx, row in dax_expressions.iterrows():
                     st.write(f"**DAX Expression {idx + 1}:** {row['Expression']}")
+
+                # Prepare DAX expressions for download
+                dax_list = dax_expressions['Expression'].tolist()
+                dax_text = "\n".join(dax_list)
+                
+                # Provide download button for DAX expressions as a text file
+                st.download_button(
+                    label="Download DAX Expressions as Text",
+                    data=dax_text,
+                    file_name="dax_expressions.txt",
+                    mime="text/plain"
+                )
             else:
                 st.write(dax_expressions)
         else:
