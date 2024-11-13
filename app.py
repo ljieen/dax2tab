@@ -91,7 +91,7 @@ def convert_dax_to_tableau(dax_expression):
                 {"role": "system", "content": "You are an assistant that converts DAX expressions to Tableau calculated fields."},
                 {"role": "user", "content": f"Convert this DAX expression to Tableau calculated field: {dax_expression}"}
             ],
-            max_tokens=150
+            max_tokens=300  # Increased max tokens for more comprehensive responses
         )
     return response.choices[0].message['content'].strip()
 
@@ -205,7 +205,7 @@ if st.session_state["show_question_input"]:
                     {"role": "system", "content": "You are an assistant knowledgeable in Power BI DAX expressions and Tableau."},
                     {"role": "user", "content": question}
                 ],
-                max_tokens=200
+                max_tokens=500  # Increased max tokens for more detailed responses
             )
             answer = response.choices[0].message['content'].strip()
         
