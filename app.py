@@ -5,48 +5,23 @@ import io
 import openai
 
 # Title and Welcome Message
-st.title("DAX2Tab: PowerBI to Tableau Conversion Assistant")
+st.title("✨ DAX2Tab: PowerBI to Tableau Conversion Assistant")
 st.write("Welcome! Let me help you convert your PowerBI reports to Tableau dashboards.")
 
 # Section for entering OpenAI API Key
-st.subheader("API Key Setup")
-api_key_input = st.text_input("Enter your OpenAI API Key:", type="password")
+with st.expander("🔑 API Key Setup"):
+    api_key_input = st.text_input("Enter your OpenAI API Key:", type="password")
 
-# Check if API key is entered and save it to session state
-if api_key_input:
-    st.session_state["OPENAI_API_KEY"] = api_key_input
-    openai.api_key = api_key_input
-    st.success("API Key set successfully!")
+    if api_key_input:
+        st.session_state["OPENAI_API_KEY"] = api_key_input
+        openai.api_key = api_key_input
+        st.success("API Key set successfully!")
 
-# Ensure that the OpenAI API key is set before making requests
 if "OPENAI_API_KEY" not in st.session_state:
     st.warning("Please enter your OpenAI API Key above to enable DAX to Tableau conversion.")
 
-st.subheader("1. Datasource Setup")
-st.write("""
-• Identify key tables/columns  
-• Suggest Tableau datasource structure
-""")
-
-st.subheader("2. DAX to Tableau Conversion")
-st.write("""
-• Convert DAX to Tableau calculated fields  
-• Explain conversions
-""")
-
-# Section 3: Platform Insights
-st.subheader("3. Platform Insights")
-st.write("""
-    • Highlight differences between PowerBI & Tableau  
-    • Offer migration tips
-""")
-
-# Q&A Section
-st.subheader("4. Ask Me Anything!")
-st.write("Got questions about PowerBI & Tableau? I'm here to help!")
-
-# File upload widget
-uploaded_file = st.file_uploader("Choose a PBIX file", type="pbix")
+# Layout sections in two columns
+col1, col2 = st.columns(2)
 
 # Function to extract all DAX expressions from a PBIX file
 def extract_all_dax_expressions(file_path):
@@ -91,72 +66,96 @@ def convert_dax_to_tableau(dax_expression):
                 {"role": "system", "content": "You are an assistant that converts DAX expressions to Tableau calculated fields."},
                 {"role": "user", "content": f"Convert this DAX expression to Tableau calculated field: {dax_expression}"}
             ],
-            max_tokens=300  # Increased max tokens for more comprehensive responses
+            max_tokens=300
         )
     return response.choices[0].message['content'].strip()
 
-# Display options in a 2x2 grid
-col1, col2 = st.columns(2)
+# Sidebar for uploading file
+with st.sidebar:
+    st.subheader("📂 Upload Your PBIX File")
+    uploaded_file = st.file_uploader("Choose a PBIX file", type="pbix")
 
-# Option 1: Extract DAX Expressions with CSV download functionality
-with col1:
-    if st.button("Extract DAX Expressions"):
-        if uploaded_file:
+# Block for Datasource Setup
+with st.expander("🔍 1. Datasource Setup"):
+    st.write("• Identify key tables/columns")
+    st.write("• Suggest Tableau datasource structure")
+
+# Block for Extracting DAX Expressions and Converting
+with st.expander("🔄 2. DAX to Tableau Conversion"):
+    # Option 1: Extract DAX Expressions with CSV download functionality
+    with col1:
+        if st.button("Extract DAX Expressions"):
+            if uploaded_file:
+                with open("temp_file.pbix", "wb") as f:
+                    f.write(uploaded_file.getbuffer())
+                dax_expressions = extract_all_dax_expressions("temp_file.pbix")
+                if isinstance(dax_expressions, pd.DataFrame):
+                    st.write("DAX Expressions Table:")
+                    st.table(dax_expressions)
+
+                    # Prepare DAX expressions for download as a CSV file
+                    csv_buffer = io.StringIO()
+                    dax_expressions.to_csv(csv_buffer, index=False)
+                    
+                    st.download_button(
+                        label="Download DAX Expressions as CSV",
+                        data=csv_buffer.getvalue(),
+                        file_name="dax_expressions.csv",
+                        mime="text/csv"
+                    )
+                else:
+                    st.write(dax_expressions)
+            else:
+                st.warning("Please upload a PBIX file to proceed.")
+
+    # Option 2: Extract and Convert the First DAX Expression to Tableau Calculated Field
+    if st.button("Extract and Convert First DAX Expression to Tableau Calculated Field"):
+        if not st.session_state.get("OPENAI_API_KEY"):
+            st.error("Please enter your OpenAI API Key to use the conversion feature.")
+        elif uploaded_file:
             with open("temp_file.pbix", "wb") as f:
                 f.write(uploaded_file.getbuffer())
             dax_expressions = extract_all_dax_expressions("temp_file.pbix")
-            if isinstance(dax_expressions, pd.DataFrame):
+            
+            if isinstance(dax_expressions, pd.DataFrame) and not dax_expressions.empty:
                 st.write("DAX Expressions Table:")
                 st.table(dax_expressions)  # Display DAX expressions as a table
-
-                # Prepare DAX expressions for download as a CSV file
-                csv_buffer = io.StringIO()
-                dax_expressions.to_csv(csv_buffer, index=False)
                 
-                # Provide download button for DAX expressions as a CSV file
-                st.download_button(
-                    label="Download DAX Expressions as CSV",
-                    data=csv_buffer.getvalue(),
-                    file_name="dax_expressions.csv",
-                    mime="text/csv"
-                )
+                # Get the first DAX expression
+                first_dax_expression = dax_expressions['Expression'].iloc[0]
+                
+                # Convert the first DAX expression to Tableau equivalent
+                tableau_calculated_field = convert_dax_to_tableau(first_dax_expression)
+                
+                # Display the converted expression
+                st.write("Converted First DAX Expression to Tableau Calculated Field:")
+                st.write({
+                    "DAX Expression": first_dax_expression,
+                    "Tableau Calculated Field": tableau_calculated_field
+                })
+                
+                # Follow-up Question Option
+                follow_up_question = st.text_input("Ask a follow-up question about this conversion:")
+                if follow_up_question:
+                    with st.spinner("Generating follow-up answer..."):
+                        response = openai.ChatCompletion.create(
+                            model="gpt-4",
+                            messages=[
+                                {"role": "system", "content": "You are an assistant knowledgeable in Power BI DAX expressions and Tableau."},
+                                {"role": "user", "content": follow_up_question}
+                            ],
+                            max_tokens=500
+                        )
+                        follow_up_answer = response.choices[0].message['content'].strip()
+                    st.write("**Follow-up Answer:**")
+                    st.write(follow_up_answer)
             else:
-                st.write(dax_expressions)
+                st.write(dax_expressions if isinstance(dax_expressions, str) else "No DAX expressions found.")
         else:
             st.warning("Please upload a PBIX file to proceed.")
 
-# Option to Extract and Convert the First DAX Expression to Tableau Calculated Field
-if st.button("Extract and Convert First DAX Expression to Tableau Calculated Field"):
-    if not st.session_state.get("OPENAI_API_KEY"):
-        st.error("Please enter your OpenAI API Key to use the conversion feature.")
-    elif uploaded_file:
-        with open("temp_file.pbix", "wb") as f:
-            f.write(uploaded_file.getbuffer())
-        dax_expressions = extract_all_dax_expressions("temp_file.pbix")
-        
-        if isinstance(dax_expressions, pd.DataFrame) and not dax_expressions.empty:
-            st.write("DAX Expressions Table:")
-            st.table(dax_expressions)  # Display DAX expressions as a table
-            
-            # Get the first DAX expression
-            first_dax_expression = dax_expressions['Expression'].iloc[0]
-            
-            # Convert the first DAX expression to Tableau equivalent
-            tableau_calculated_field = convert_dax_to_tableau(first_dax_expression)
-            
-            # Display the converted expression
-            st.write("Converted First DAX Expression to Tableau Calculated Field:")
-            st.write({
-                "DAX Expression": first_dax_expression,
-                "Tableau Calculated Field": tableau_calculated_field
-            })
-        else:
-            st.write(dax_expressions if isinstance(dax_expressions, str) else "No DAX expressions found.")
-    else:
-        st.warning("Please upload a PBIX file to proceed.")
-
-# Option 2: Extract Schema
-with col2:
+# Block for Schema Extraction
+with st.expander("🗃️ 3. Schema Extraction"):
     if st.button("Extract Schema"):
         if uploaded_file:
             with open("temp_file.pbix", "wb") as f:
@@ -170,8 +169,8 @@ with col2:
         else:
             st.warning("Please upload a PBIX file to proceed.")
 
-# Option 3: Extract Relationships
-with col1:
+# Block for Relationships Extraction
+with st.expander("🔗 4. Relationships Extraction"):
     if st.button("Extract Relationships"):
         if uploaded_file:
             with open("temp_file.pbix", "wb") as f:
@@ -185,19 +184,10 @@ with col1:
         else:
             st.warning("Please upload a PBIX file to proceed.")
 
-# Initialize session state for "Ask a Question" button
-if "show_question_input" not in st.session_state:
-    st.session_state["show_question_input"] = False
-
-# Option to Ask a Question to ChatGPT about DAX and Tableau
-if st.button("Ask a Question"):
-    st.session_state["show_question_input"] = True  # Set flag to show the input field
-
-# Show the question input field if the "Ask a Question" button was clicked
-if st.session_state["show_question_input"]:
+# Block for Q&A Section with ChatGPT
+with st.expander("💬 5. Ask Me Anything!"):
     question = st.text_input("Enter your question about Power BI DAX expressions or Tableau:")
     if question:
-        # Send the question to ChatGPT with a loading spinner
         with st.spinner("Generating answer..."):
             response = openai.ChatCompletion.create(
                 model="gpt-4",
@@ -205,10 +195,9 @@ if st.session_state["show_question_input"]:
                     {"role": "system", "content": "You are an assistant knowledgeable in Power BI DAX expressions and Tableau."},
                     {"role": "user", "content": question}
                 ],
-                max_tokens=500  # Increased max tokens for more detailed responses
+                max_tokens=500
             )
             answer = response.choices[0].message['content'].strip()
         
-        # Display the response
         st.write("**Answer:**")
         st.write(answer)
