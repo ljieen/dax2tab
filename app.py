@@ -33,6 +33,30 @@ with st.expander("🔍 1. Datasource Setup"):
     st.write("• Identify key tables/columns")
     st.write("• Suggest Tableau datasource structure")
 
+    # Function to extract schema from the PBIX file
+    def extract_schema(file_path):
+        try:
+            model = PBIXRay(file_path)
+            schema = model.schema
+            if schema.empty:
+                return "No schema found."
+            return schema
+        except Exception as e:
+            return f"Error during schema extraction: {e}"
+
+    if st.button("Extract Schema"):
+        if uploaded_file:
+            with open("temp_file.pbix", "wb") as f:
+                f.write(uploaded_file.getbuffer())
+            schema = extract_schema("temp_file.pbix")
+            if isinstance(schema, pd.DataFrame):
+                st.write("Schema:")
+                st.dataframe(schema)
+            else:
+                st.write(schema)
+        else:
+            st.warning("Please upload a PBIX file to proceed.")
+
 # Block for Extracting and Converting DAX Expressions
 with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
     st.write("Extract DAX expressions from your Power BI file and convert them into Tableau-compatible calculated fields for seamless migration.")
@@ -133,36 +157,8 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
         else:
             st.warning("Please upload a PBIX file to proceed.")
 
-# Block for Schema Extraction
-with st.expander("🗃️ 3. Schema Extraction"):
-    st.write("Extract the schema information from your PBIX file to help you understand the structure of your data and plan your migration to Tableau.")
-
-    # Function to extract schema from the PBIX file
-    def extract_schema(file_path):
-        try:
-            model = PBIXRay(file_path)
-            schema = model.schema
-            if schema.empty:
-                return "No schema found."
-            return schema
-        except Exception as e:
-            return f"Error during schema extraction: {e}"
-
-    if st.button("Extract Schema"):
-        if uploaded_file:
-            with open("temp_file.pbix", "wb") as f:
-                f.write(uploaded_file.getbuffer())
-            schema = extract_schema("temp_file.pbix")
-            if isinstance(schema, pd.DataFrame):
-                st.write("Schema:")
-                st.dataframe(schema)
-            else:
-                st.write(schema)
-        else:
-            st.warning("Please upload a PBIX file to proceed.")
-
 # Block for Relationships Extraction
-with st.expander("🔗 4. Relationships Extraction"):
+with st.expander("🔗 3. Relationships Extraction"):
     st.write("Extract relationships from your Power BI data model to help you maintain data integrity and relationships in Tableau.")
 
     # Function to extract relationships from the PBIX file
@@ -190,7 +186,7 @@ with st.expander("🔗 4. Relationships Extraction"):
             st.warning("Please upload a PBIX file to proceed.")
 
 # Block for Q&A Section with ChatGPT
-with st.expander("💬 5. Ask Me Anything!"):
+with st.expander("💬 4. Ask Me Anything!"):
     st.write("Have any questions about Power BI, DAX expressions, or Tableau? Ask here, and I'll do my best to help you!")
 
     question = st.text_input("Enter your question about Power BI DAX expressions or Tableau:")
