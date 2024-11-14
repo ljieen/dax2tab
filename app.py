@@ -4,12 +4,22 @@ from pbixray import PBIXRay
 import io
 import openai
 
-# Set OpenAI API key directly in the backend
-openai.api_key = "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"  # Replace "your_api_key_here" with your actual API key
-
 # Title and Welcome Message
 st.title("✨ DAX2Tab: PowerBI to Tableau Conversion Assistant")
 st.write("Welcome! Let me help you convert your PowerBI reports to Tableau dashboards.")
+
+# Sidebar for API Key Input
+with st.sidebar:
+    st.subheader("🔑 OpenAI API Key")
+    user_api_key = st.text_input("Enter your OpenAI API Key", type="password")
+    if user_api_key:
+        openai.api_key = user_api_key
+
+# Check if OpenAI API key is set
+if not openai.api_key:
+    st.error("OpenAI API key is not set. Please enter it in the sidebar.")
+else:
+    st.success("OpenAI API key configured successfully!")
 
 # Sidebar for uploading file
 with st.sidebar:
