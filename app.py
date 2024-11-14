@@ -10,7 +10,7 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # Title and Welcome Message
 st.title("✨ DAX2Tab: PowerBI to Tableau Conversion Assistant")
-st.write("Welcome! Let me help you convert your PowerBI reports to Tableau dashboards.")
+st.write("Welcome! Let me help you convert your Power BI reports to Tableau dashboards.")
 
 # Check if OpenAI API key is set
 if not openai.api_key:
@@ -21,16 +21,13 @@ else:
 # Sidebar for uploading file
 with st.sidebar:
     st.subheader("📂 Upload Your PBIX File")
-    st.write("Upload your Power BI PBIX file to extract DAX expressions, schema, and relationships for conversion and analysis.")
+    st.write("Upload your Power BI PBIX file to extract DAX expressions, schema, relationships, and Power Query scripts for conversion and analysis.")
     uploaded_file = st.file_uploader("Choose a PBIX file", type="pbix")
 
 # Block for Datasource Setup
 with st.expander("🔍 1. Datasource Setup"):
     st.write("This section helps identify key tables and columns in your Power BI data and suggests an appropriate Tableau datasource structure.")
-    st.write("• Identify key tables/columns")
-    st.write("• Suggest Tableau datasource structure")
-
-    # Function to extract schema from the PBIX file
+    
     def extract_schema(file_path):
         try:
             model = PBIXRay(file_path)
@@ -58,7 +55,6 @@ with st.expander("🔍 1. Datasource Setup"):
 with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
     st.write("Extract the first five DAX expressions from your Power BI file and convert them into Tableau-compatible calculated fields for seamless migration.")
 
-    # Function to extract all DAX expressions from a PBIX file
     def extract_all_dax_expressions(file_path):
         try:
             model = PBIXRay(file_path)
@@ -70,7 +66,6 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
         except Exception as e:
             return f"Error during DAX extraction: {e}"
 
-    # Function to convert DAX to Tableau calculated field using OpenAI
     def convert_dax_to_tableau(dax_expression):
         try:
             with st.spinner("Converting DAX to Tableau calculated field..."):
@@ -86,7 +81,6 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
         except Exception as e:
             return f"Error during conversion: {e}"
 
-    # Extract and Convert the First 5 DAX Expressions
     if st.button("Extract and Convert First 5 DAX Expressions to Tableau Calculated Fields"):
         if not openai.api_key:
             st.error("OpenAI API key is not configured.")
@@ -99,11 +93,9 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
                 st.write("DAX Expressions Table:")
                 st.table(dax_expressions)
 
-                # Limit to the first five expressions
                 first_five_dax_expressions = dax_expressions['Expression'].head(5)
-
-                # Convert each of the first five DAX expressions to Tableau calculated fields
                 tableau_calculated_fields = []
+                
                 for i, dax_expression in enumerate(first_five_dax_expressions, 1):
                     tableau_calculated_field = convert_dax_to_tableau(dax_expression)
                     tableau_calculated_fields.append({
@@ -111,7 +103,6 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
                         "Tableau Calculated Field": tableau_calculated_field
                     })
 
-                # Display converted expressions
                 for i, conversion in enumerate(tableau_calculated_fields, 1):
                     st.write(f"### Conversion {i}")
                     st.write("**DAX Expression:**", conversion["DAX Expression"])
@@ -126,7 +117,6 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
 with st.expander("🔗 3. Relationships Extraction"):
     st.write("Extract relationships from your Power BI data model to help you maintain data integrity and relationships in Tableau.")
 
-    # Function to extract relationships from the PBIX file
     def extract_relationships(file_path):
         try:
             model = PBIXRay(file_path)
@@ -150,8 +140,30 @@ with st.expander("🔗 3. Relationships Extraction"):
         else:
             st.warning("Please upload a PBIX file to proceed.")
 
+# Block for Power Query Extraction
+with st.expander("⚙️ 4. Power Query Extraction"):
+    st.write("Extract Power Query scripts from your Power BI file to review and adapt queries used in the data transformation process.")
+
+    def extract_power_query(file_path):
+        try:
+            model = PBIXRay(file_path)
+            power_query = model.power_query
+            return power_query if power_query else "No Power Query scripts found."
+        except Exception as e:
+            return f"Error during Power Query extraction: {e}"
+
+    if st.button("Extract Power Query"):
+        if uploaded_file:
+            with open("temp_file.pbix", "wb") as f:
+                f.write(uploaded_file.getbuffer())
+            power_query_script = extract_power_query("temp_file.pbix")
+            st.write("Power Query Script:")
+            st.code(power_query_script)
+        else:
+            st.warning("Please upload a PBIX file to proceed.")
+
 # Block for Q&A Section with ChatGPT
-with st.expander("💬 4. Ask Me Anything!"):
+with st.expander("💬 5. Ask Me Anything!"):
     st.write("Have any questions about Power BI, DAX expressions, or Tableau? Ask here, and I'll do my best to help you!")
 
     question = st.text_input("Enter your question about Power BI DAX expressions or Tableau:")
