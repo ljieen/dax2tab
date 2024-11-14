@@ -3,18 +3,21 @@ import pandas as pd
 from pbixray import PBIXRay
 import io
 import openai
-import os
-
-# Set OpenAI API key from environment variable
-openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # Title and Welcome Message
 st.title("✨ DAX2Tab: PowerBI to Tableau Conversion Assistant")
 st.write("Welcome! Let me help you convert your PowerBI reports to Tableau dashboards.")
 
+# Sidebar for API Key Input
+with st.sidebar:
+    st.subheader("🔑 OpenAI API Key")
+    user_api_key = st.text_input("Enter your OpenAI API Key", type="password")
+    if user_api_key:
+        openai.api_key = user_api_key
+
 # Check if OpenAI API key is set
 if not openai.api_key:
-    st.error("OpenAI API key is not set. Please configure it in the environment variables.")
+    st.error("OpenAI API key is not set. Please enter it in the sidebar.")
 else:
     st.success("OpenAI API key configured successfully!")
 
