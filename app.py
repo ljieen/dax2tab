@@ -5,7 +5,7 @@ import io
 import openai
 
 # Set OpenAI API key directly in the backend
-openai.api_key = "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"  # Replace "your_api_key_here" with your actual API key
+openai.api_key = "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"  # Replace "your_api_key_here" with your actual API key
 
 # Title and Welcome Message
 st.title("✨ DAX2Tab: PowerBI to Tableau Conversion Assistant")
