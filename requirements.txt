@@ -7,4 +7,5 @@ torch  # Necessary for GPU support
 openai==0.28.0
 openpyxl
 xlsxwriter
+tableauhyperapi
 
