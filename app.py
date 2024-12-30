@@ -1,8 +1,10 @@
-import streamlit as st
+import os
+import zipfile
 import pandas as pd
+import streamlit as st
 from pbixray import PBIXRay
-import io
 import openai
+from tableauhyperapi import HyperProcess, Telemetry, Connection, CreateMode, SqlType, TableDefinition, TableName, Column, SqlExpression, Inserter
 
 # Retrieve OpenAI API key from Streamlit secrets
 openai.api_key = st.secrets["openai"]["api_key"]
@@ -69,7 +71,7 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
             with st.spinner("Converting DAX to Tableau calculated field..."):
                 response = openai.ChatCompletion.create(
                     model="gpt-4",
-                    messages=[
+                    messages=[ 
                         {"role": "system", "content": "You are an assistant that converts DAX expressions to Tableau calculated fields."},
                         {"role": "user", "content": f"Convert this DAX expression to Tableau calculated field: {dax_expression}"}
                     ],
@@ -153,7 +155,7 @@ with st.expander("💬 4. Ask Me Anything!"):
             try:
                 response = openai.ChatCompletion.create(
                     model="gpt-4",
-                    messages=[
+                    messages=[ 
                         {"role": "system", "content": "You are an assistant knowledgeable in Power BI DAX expressions and Tableau."},
                         {"role": "user", "content": question}
                     ],
@@ -164,3 +166,98 @@ with st.expander("💬 4. Ask Me Anything!"):
                 st.write(answer)
             except Exception as e:
                 st.error(f"Error during question processing: {e}")
+
+# Block for converting PBIX to Tableau .twbx
+with st.expander("🔁 5. Convert PBIX to Tableau (.twbx)"):
+    st.write("Convert your Power BI PBIX file into a Tableau Packaged Workbook (.twbx) file.")
+    
+    # Function to convert PBIX data into a .csv file
+    def convert_pbix_to_csv(file_path):
+        try:
+            model = PBIXRay(file_path)
+            tables = model.tables
+            if tables.empty:
+                return "No tables found."
+            
+            csv_files = []
+            for table_name, table_data in tables.items():
+                csv_file = f"{table_name}.csv"
+                table_data.to_csv(csv_file, index=False)
+                csv_files.append(csv_file)
+            
+            return csv_files
+        except Exception as e:
+            return f"Error during CSV conversion: {e}"
+
+    # Function to create a .hyper file from a CSV
+    def create_hyper_from_csv(csv_file_path, hyper_file_path):
+        try:
+            with HyperProcess(telemetry=Telemetry.SEND_USAGE_DATA_TO_TABLEAU) as hyper:
+                with Connection(endpoint=hyper.endpoint, create_mode=CreateMode.CREATE_AND_REPLACE, database=hyper_file_path) as connection:
+                    # Define schema and table
+                    table_definition = TableDefinition(
+                        TableName("Extract", "Extract"),
+                        [Column('column_name', SqlType.text())]  # Define columns based on CSV structure
+                    )
+                    
+                    # Create the table in the hyper file
+                    connection.catalog.create_table(table_definition)
+                    
+                    # Insert data from CSV
+                    with Inserter(connection, table_definition) as inserter:
+                        df = pd.read_csv(csv_file_path)
+                        for row in df.values:
+                            inserter.add_row(row)
+                        inserter.execute()
+            return hyper_file_path
+        except Exception as e:
+            return f"Error during Hyper file creation: {e}"
+
+    # Function to create a .twbx file by zipping the .twb and .hyper files
+    def create_twbx(workbook_file, hyper_files):
+        try:
+            twbx_file = "output.twbx"
+            with zipfile.ZipFile(twbx_file, 'w') as zipf:
+                zipf.write(workbook_file, os.path.basename(workbook_file))
+                for hyper_file in hyper_files:
+                    zipf.write(hyper_file, os.path.basename(hyper_file))
+            return twbx_file
+        except Exception as e:
+            return f"Error during TWBX creation: {e}"
+
+    if st.button("Convert to .twbx"):
+        if uploaded_file:
+            with open("temp_file.pbix", "wb") as f:
+                f.write(uploaded_file.getbuffer())
+            
+            # Convert PBIX data to CSV files
+            csv_files = convert_pbix_to_csv("temp_file.pbix")
+            if isinstance(csv_files, list):
+                st.write(f"Converted CSV Files: {csv_files}")
+                
+                # Convert CSV files to .hyper files
+                hyper_files = []
+                for csv_file in csv_files:
+                    hyper_file = create_hyper_from_csv(csv_file, f"{csv_file}.hyper")
+                    if isinstance(hyper_file, str) and hyper_file.endswith(".hyper"):
+                        hyper_files.append(hyper_file)
+                
+                # Create Tableau workbook (you can use a predefined .twb file or generate one dynamically)
+                workbook_file = "workbook.twb"  # Assuming you have a workbook file ready
+                
+                # Create the .twbx file
+                twbx_file = create_twbx(workbook_file, hyper_files)
+                st.write(f"Successfully created Tableau .twbx file: {twbx_file}")
+                
+                # Provide download link for .twbx file
+                with open(twbx_file, "rb") as f:
+                    st.download_button(
+                        label="Download Tableau Packaged Workbook (.twbx)",
+                        data=f,
+                        file_name=twbx_file,
+                        mime="application/zip"
+                    )
+            else:
+                st.write(csv_files)
+        else:
+            st.warning("Please upload a PBIX file to proceed.")
