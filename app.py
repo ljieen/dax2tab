@@ -3,9 +3,6 @@ import pandas as pd
 from pbixray import PBIXRay
 import io
 import openai
-import zipfile
-import os
-import xml.etree.ElementTree as ET
 
 # Retrieve OpenAI API key from Streamlit secrets
 openai.api_key = st.secrets["openai"]["api_key"]
@@ -146,64 +143,8 @@ with st.expander("🔗 3. Relationships Extraction"):
         else:
             st.warning("Please upload a PBIX file to proceed.")
 
-# Block for TWBX Generation
-with st.expander("📦 4. Generate TWBX File"):
-    st.write("Generate a Tableau TWBX file with extracted schema and calculated fields.")
-
-    def create_twb_xml(schema, calculated_fields):
-        workbook = ET.Element('workbook')
-        datasources = ET.SubElement(workbook, 'datasources')
-        datasource = ET.SubElement(datasources, 'datasource', attrib={"name": "ConvertedDataSource"})
-
-        for _, row in schema.iterrows():
-            ET.SubElement(datasource, 'column', attrib={"name": row['Name'], "type": row['Type']})
-
-        for calc_field in calculated_fields:
-            ET.SubElement(datasource, 'calculation', attrib={"name": calc_field['Name'], "formula": calc_field['Formula']})
-
-        return ET.tostring(workbook, encoding='utf-8', method='xml')
-
-    def create_twbx_file(schema, calculated_fields):
-        twb_content = create_twb_xml(schema, calculated_fields)
-        os.makedirs('output', exist_ok=True)
-        twb_path = os.path.join('output', 'converted_workbook.twb')
-        with open(twb_path, 'wb') as f:
-            f.write(twb_content)
-
-        twbx_path = os.path.join('output', 'converted_workbook.twbx')
-        with zipfile.ZipFile(twbx_path, 'w') as zf:
-            zf.write(twb_path, os.path.basename(twb_path))
-        return twbx_path
-
-    if st.button("Generate TWBX File"):
-        if uploaded_file:
-            with open("temp_file.pbix", "wb") as f:
-                f.write(uploaded_file.getbuffer())
-            model = PBIXRay("temp_file.pbix")
-            schema = model.schema
-            dax_measures = model.dax_measures
-
-            calculated_fields = []
-            for i, dax in dax_measures[['Expression']].head(5).iterrows():
-                response = openai.ChatCompletion.create(
-                    model="gpt-4",
-                    messages=[
-                        {"role": "system", "content": "Convert DAX expressions to Tableau calculated fields."},
-                        {"role": "user", "content": f"Convert this DAX expression: {dax['Expression']}"}
-                    ],
-                    max_tokens=300
-                )
-                formula = response.choices[0].message['content'].strip()
-                calculated_fields.append({"Name": f"Field_{i+1}", "Formula": formula})
-
-            twbx_path = create_twbx_file(schema, calculated_fields)
-            with open(twbx_path, 'rb') as f:
-                st.download_button("Download TWBX File", f, file_name='converted_workbook.twbx')
-        else:
-            st.warning("Please upload a PBIX file first.")
-
 # Block for Q&A Section with ChatGPT
-with st.expander("💬 5. Ask Me Anything!"):
+with st.expander("💬 4. Ask Me Anything!"):
     st.write("Have any questions about Power BI, DAX expressions, or Tableau? Ask here, and I'll do my best to help you!")
 
     question = st.text_input("Enter your question about Power BI DAX expressions or Tableau:")
@@ -215,3 +156,11 @@ with st.expander("💬 5. Ask Me Anything!"):
                     messages=[
                         {"role": "system", "content": "You are an assistant knowledgeable in Power BI DAX expressions and Tableau."},
                         {"role": "user", "content": question}
+                    ],
+                    max_tokens=500
+                )
+                answer = response.choices[0].message['content'].strip()
+                st.write("**Answer:**")
+                st.write(answer)
+            except Exception as e:
+                st.error(f"Error during question processing: {e}")
