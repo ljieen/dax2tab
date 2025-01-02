@@ -3,6 +3,7 @@ import pandas as pd
 from pbixray import PBIXRay
 import io
 import openai
+import tableauserverclient as TSC
 
 # Retrieve OpenAI API key from Streamlit secrets
 openai.api_key = st.secrets["openai"]["api_key"]
@@ -143,8 +144,37 @@ with st.expander("🔗 3. Relationships Extraction"):
         else:
             st.warning("Please upload a PBIX file to proceed.")
 
+# Block for Exporting TWBX file
+with st.expander("📦 4. Export as TWBX File"):
+    st.write("Export the extracted metadata into a Tableau TWBX file.")
+
+    def export_to_twbx(schema, relationships, output_file):
+        try:
+            tableau_file = TSC.File(output_file)
+            with open(output_file, "wb") as f:
+                f.write(schema.to_csv(index=False).encode('utf-8'))
+                f.write(relationships.to_csv(index=False).encode('utf-8'))
+            return output_file
+        except Exception as e:
+            return f"Error exporting TWBX file: {e}"
+
+    if st.button("Export to TWBX"):
+        if uploaded_file:
+            schema = extract_schema("temp_file.pbix")
+            relationships = extract_relationships("temp_file.pbix")
+            output_file = "output.twbx"
+            result = export_to_twbx(schema, relationships, output_file)
+            if isinstance(result, str):
+                st.success(f"Exported successfully: {result}")
+                with open(output_file, "rb") as file:
+                    st.download_button("Download TWBX File", file, file_name="output.twbx")
+            else:
+                st.error(result)
+        else:
+            st.warning("Please upload a PBIX file to proceed.")
+
 # Block for Q&A Section with ChatGPT
-with st.expander("💬 4. Ask Me Anything!"):
+with st.expander("💬 5. Ask Me Anything!"):
     st.write("Have any questions about Power BI, DAX expressions, or Tableau? Ask here, and I'll do my best to help you!")
 
     question = st.text_input("Enter your question about Power BI DAX expressions or Tableau:")
