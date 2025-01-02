@@ -8,4 +8,5 @@ openai==0.28.0
 openpyxl
 xlsxwriter
 tableauhyperapi
+tableauserverclient
 
