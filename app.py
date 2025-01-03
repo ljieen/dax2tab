@@ -3,7 +3,6 @@ import pandas as pd
 from pbixray import PBIXRay
 import io
 import openai
-import tableauserverclient as TSC
 
 # Retrieve OpenAI API key from Streamlit secrets
 openai.api_key = st.secrets["openai"]["api_key"]
@@ -21,6 +20,8 @@ with st.sidebar:
 # Block for Datasource Setup
 with st.expander("🔍 1. Datasource Setup"):
     st.write("This section helps identify key tables and columns in your Power BI data and suggests an appropriate Tableau datasource structure.")
+    st.write("• Identify key tables/columns")
+    st.write("• Suggest Tableau datasource structure")
 
     # Function to extract schema from the PBIX file
     def extract_schema(file_path):
@@ -28,39 +29,41 @@ with st.expander("🔍 1. Datasource Setup"):
             model = PBIXRay(file_path)
             schema = model.schema
             if schema.empty:
-                return "No schema found."
-            return schema
+                return pd.DataFrame(), "No schema found."
+            return schema, "Schema extracted successfully."
         except Exception as e:
-            return f"Error during schema extraction: {e}"
+            return pd.DataFrame(), f"Error during schema extraction: {e}"
 
     if st.button("Extract Schema"):
         if uploaded_file:
             with open("temp_file.pbix", "wb") as f:
                 f.write(uploaded_file.getbuffer())
-            schema = extract_schema("temp_file.pbix")
-            if isinstance(schema, pd.DataFrame):
+            schema, message = extract_schema("temp_file.pbix")
+            if not schema.empty:
                 st.write("Schema:")
                 st.dataframe(schema)
             else:
-                st.write(schema)
+                st.write(message)
         else:
             st.warning("Please upload a PBIX file to proceed.")
 
 # Block for Extracting and Converting DAX Expressions
 with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
-    st.write("Extract the first five DAX expressions from your Power BI file and convert them into Tableau-compatible calculated fields.")
+    st.write("Extract the first five DAX expressions from your Power BI file and convert them into Tableau-compatible calculated fields for seamless migration.")
 
+    # Function to extract all DAX expressions from a PBIX file
     def extract_all_dax_expressions(file_path):
         try:
             model = PBIXRay(file_path)
             dax_measures = model.dax_measures
             if dax_measures.empty or 'Expression' not in dax_measures.columns:
-                return "No DAX expressions found."
+                return pd.DataFrame(), "No DAX expressions found."
             dax_measures['Expression'] = dax_measures['Expression'].str.replace('\n', '', regex=False)
-            return dax_measures[['Expression']]
+            return dax_measures[['Expression']], "DAX expressions extracted successfully."
         except Exception as e:
-            return f"Error during DAX extraction: {e}"
+            return pd.DataFrame(), f"Error during DAX extraction: {e}"
 
+    # Function to convert DAX to Tableau calculated field using OpenAI
     def convert_dax_to_tableau(dax_expression):
         try:
             with st.spinner("Converting DAX to Tableau calculated field..."):
@@ -76,17 +79,23 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
         except Exception as e:
             return f"Error during conversion: {e}"
 
+    # Extract and Convert the First 5 DAX Expressions
     if st.button("Extract and Convert First 5 DAX Expressions to Tableau Calculated Fields"):
         if not openai.api_key:
             st.error("OpenAI API key is not configured.")
         elif uploaded_file:
             with open("temp_file.pbix", "wb") as f:
                 f.write(uploaded_file.getbuffer())
-            dax_expressions = extract_all_dax_expressions("temp_file.pbix")
-            if isinstance(dax_expressions, pd.DataFrame) and not dax_expressions.empty:
+            dax_expressions, message = extract_all_dax_expressions("temp_file.pbix")
+            
+            if not dax_expressions.empty:
                 st.write("DAX Expressions Table:")
                 st.table(dax_expressions)
+
+                # Limit to the first five expressions
                 first_five_dax_expressions = dax_expressions['Expression'].head(5)
+
+                # Convert each of the first five DAX expressions to Tableau calculated fields
                 tableau_calculated_fields = []
                 for i, dax_expression in enumerate(first_five_dax_expressions, 1):
                     tableau_calculated_field = convert_dax_to_tableau(dax_expression)
@@ -94,39 +103,70 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
                         "DAX Expression": dax_expression,
                         "Tableau Calculated Field": tableau_calculated_field
                     })
+
+                # Display converted expressions
                 for i, conversion in enumerate(tableau_calculated_fields, 1):
                     st.write(f"### Conversion {i}")
                     st.write("**DAX Expression:**", conversion["DAX Expression"])
                     st.write("**Tableau Calculated Field:**", conversion["Tableau Calculated Field"])
                     st.write("---")
             else:
-                st.write(dax_expressions if isinstance(dax_expressions, str) else "No DAX expressions found.")
+                st.write(message)
+        else:
+            st.warning("Please upload a PBIX file to proceed.")
+
+# Block for Relationships Extraction
+with st.expander("🔗 3. Relationships Extraction"):
+    st.write("Extract relationships from your Power BI data model to help you maintain data integrity and relationships in Tableau.")
+
+    # Function to extract relationships from the PBIX file
+    def extract_relationships(file_path):
+        try:
+            model = PBIXRay(file_path)
+            relationships = model.relationships
+            if relationships.empty:
+                return pd.DataFrame(), "No relationships found."
+            return relationships, "Relationships extracted successfully."
+        except Exception as e:
+            return pd.DataFrame(), f"Error during relationships extraction: {e}"
+
+    if st.button("Extract Relationships"):
+        if uploaded_file:
+            with open("temp_file.pbix", "wb") as f:
+                f.write(uploaded_file.getbuffer())
+            relationships, message = extract_relationships("temp_file.pbix")
+            if not relationships.empty:
+                st.write("Relationships:")
+                st.dataframe(relationships)
+            else:
+                st.write(message)
         else:
             st.warning("Please upload a PBIX file to proceed.")
 
 # Block for Exporting TWBX file
-with st.expander("📦 3. Export as TWBX File"):
-    st.write("Export the extracted metadata into a Tableau TWBX file.")
+with st.expander("📦 4. Export as TWBX File"):
+    st.write("Export the extracted metadata into a Tableau-compatible CSV file.")
 
-    def export_to_twbx(schema, relationships, output_file):
+    def export_to_csv(schema, relationships, output_file):
         try:
+            schema.to_csv("schema.csv", index=False)
+            relationships.to_csv("relationships.csv", index=False)
             with open(output_file, "wb") as f:
-                f.write(schema.to_csv(index=False).encode('utf-8'))
-                f.write(relationships.to_csv(index=False).encode('utf-8'))
+                f.write(b"Exported successfully.")
             return output_file
         except Exception as e:
-            return f"Error exporting TWBX file: {e}"
+            return f"Error exporting file: {e}"
 
-    if st.button("Export to TWBX"):
+    if st.button("Export to CSV"):
         if uploaded_file:
-            schema = extract_schema("temp_file.pbix")
-            relationships = extract_all_dax_expressions("temp_file.pbix")
-            output_file = "output.twbx"
-            result = export_to_twbx(schema, relationships, output_file)
-            if isinstance(result, str):
-                st.success(f"Exported successfully: {result}")
+            schema, _ = extract_schema("temp_file.pbix")
+            relationships, _ = extract_relationships("temp_file.pbix")
+            output_file = "output.csv"
+            result = export_to_csv(schema, relationships, output_file)
+            if not isinstance(result, str):
+                st.success("Exported successfully.")
                 with open(output_file, "rb") as file:
-                    st.download_button("Download TWBX File", file, file_name="output.twbx")
+                    st.download_button("Download CSV File", file, file_name="output.csv")
             else:
                 st.error(result)
         else:
