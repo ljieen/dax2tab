@@ -8,20 +8,20 @@ import openai
 openai.api_key = st.secrets["openai"]["api_key"]
 
 # Title and Welcome Message
-st.title("âœ¨ DAX2Tab: PowerBI to Tableau Conversion Assistant")
+st.title("✨ DAX2Tab: PowerBI to Tableau Conversion Assistant")
 st.write("Welcome! Let me help you convert your PowerBI reports to Tableau dashboards.")
 
 # Sidebar for uploading file
 with st.sidebar:
-    st.subheader("ðŸ“‚ Upload Your PBIX File")
+    st.subheader("📂 Upload Your PBIX File")
     st.write("Upload your Power BI PBIX file to extract DAX expressions, schema, and relationships for conversion and analysis.")
     uploaded_file = st.file_uploader("Choose a PBIX file", type="pbix")
 
 # Block for Datasource Setup
-with st.expander("ðŸ” 1. Datasource Setup"):
+with st.expander("🔍 1. Datasource Setup"):
     st.write("This section helps identify key tables and columns in your Power BI data and suggests an appropriate Tableau datasource structure.")
-    st.write("â€¢ Identify key tables/columns")
-    st.write("â€¢ Suggest Tableau datasource structure")
+    st.write("• Identify key tables/columns")
+    st.write("• Suggest Tableau datasource structure")
 
     # Function to extract schema from the PBIX file
     def extract_schema(file_path):
@@ -48,7 +48,7 @@ with st.expander("ðŸ” 1. Datasource Setup"):
             st.warning("Please upload a PBIX file to proceed.")
 
 # Block for Extracting and Converting DAX Expressions
-with st.expander("ðŸ”„ 2. DAX Expression Extraction and Conversion"):
+with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
     st.write("Extract the first five DAX expressions from your Power BI file and convert them into Tableau-compatible calculated fields for seamless migration.")
 
     # Function to extract all DAX expressions from a PBIX file
@@ -116,7 +116,7 @@ with st.expander("ðŸ”„ 2. DAX Expression Extraction and Conversion"):
             st.warning("Please upload a PBIX file to proceed.")
 
 # Block for Relationships Extraction
-with st.expander("ðŸ”— 3. Relationships Extraction"):
+with st.expander("🔗 3. Relationships Extraction"):
     st.write("Extract relationships from your Power BI data model to help you maintain data integrity and relationships in Tableau.")
 
     # Function to extract relationships from the PBIX file
@@ -144,7 +144,7 @@ with st.expander("ðŸ”— 3. Relationships Extraction"):
             st.warning("Please upload a PBIX file to proceed.")
 
 # Block for Q&A Section with ChatGPT
-with st.expander("ðŸ’¬ 4. Ask Me Anything!"):
+with st.expander("💬 4. Ask Me Anything!"):
     st.write("Have any questions about Power BI, DAX expressions, or Tableau? Ask here, and I'll do my best to help you!")
 
     question = st.text_input("Enter your question about Power BI DAX expressions or Tableau:")
@@ -164,50 +164,3 @@ with st.expander("ðŸ’¬ 4. Ask Me Anything!"):
                 st.write(answer)
             except Exception as e:
                 st.error(f"Error during question processing: {e}")
-
-# Block for Table Contents Extraction
-with st.expander("📊 5. Extract Table Contents"):
-    st.write("Retrieve data from specific tables in your Power BI model for review and analysis.")
-
-    # Function to extract table contents
-    def extract_table_contents(file_path, table_name):
-        try:
-            # Load the PBIX model
-            model = PBIXRay(file_path)
-            # Extract table data
-            table_data = model.get_table(table_name)
-            if table_data.empty:
-                return pd.DataFrame(), f"No data found in table '{table_name}'."
-            return table_data, "Table contents extracted successfully."
-        except Exception as e:
-            return pd.DataFrame(), f"Error during table extraction: {e}"
-
-    # Handle uploaded file
-    if uploaded_file:
-        # Save the uploaded file temporarily
-        with open("temp_file.pbix", "wb") as f:
-            f.write(uploaded_file.getbuffer())
-        
-        # Initialize PBIXRay model
-        model = PBIXRay("temp_file.pbix")
-        
-        # Fetch table names using model.tables
-        table_names = list(model.tables.keys())  # Use 'model.tables' directly
-
-        # Dropdown for table selection
-        table_name = st.selectbox("Select a table to extract:", table_names if table_names else ["No tables found"])
-
-        # Extract data if button is clicked
-        if st.button("Extract Table Data"):
-            if table_name and table_name != "No tables found":
-                # Extract contents of selected table
-                table_data, message = extract_table_contents("temp_file.pbix", table_name)
-                if not table_data.empty:
-                    st.write(f"Contents of Table: **{table_name}**")
-                    st.dataframe(table_data)
-                else:
-                    st.write(message)
-            else:
-                st.warning("Please select a valid table.")
-    else:
-        st.warning("Please upload a PBIX file to proceed.")
