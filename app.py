@@ -171,3 +171,32 @@ with st.expander("📦 4. Export as TWBX File"):
                 st.error(result)
         else:
             st.warning("Please upload a PBIX file to proceed.")
+
+# Block for Visuals Extraction
+with st.expander("📊 5. Visuals Extraction"):
+    st.write("Extract visuals metadata, including visual types, titles, and fields used in your Power BI reports.")
+
+    # Function to extract visuals from the PBIX file
+    def extract_visuals(file_path):
+        try:
+            model = PBIXRay(file_path)
+            visuals = model.visuals
+            if visuals.empty:
+                return pd.DataFrame(), "No visuals found."
+            return visuals, "Visuals extracted successfully."
+        except Exception as e:
+            return pd.DataFrame(), f"Error during visuals extraction: {e}"
+
+    if st.button("Extract Visuals"):
+        if uploaded_file:
+            with open("temp_file.pbix", "wb") as f:
+                f.write(uploaded_file.getbuffer())
+            visuals, message = extract_visuals("temp_file.pbix")
+            if not visuals.empty:
+                st.write("Extracted Visuals:")
+                st.dataframe(visuals)
+            else:
+                st.write(message)
+        else:
+            st.warning("Please upload a PBIX file to proceed.")
+
