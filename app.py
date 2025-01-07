@@ -187,7 +187,7 @@ with st.expander("📊 5. Extract Table Contents"):
                     f.write(uploaded_file.getbuffer())
             
                 # Initialize PBIXRay model
-                model = PBIXRay("temp_file.pbix")
+                model = PBIXRay(filepath)
             
                 # Fetch table names using model.tables
                 table_names = list(model.tables.keys())  # Use 'model.tables' directly
@@ -198,7 +198,7 @@ with st.expander("📊 5. Extract Table Contents"):
             # Extract data if button is clicked
             if st.button("Extract Table Data"):
                 if table_name and table_name != "No tables found":
-                    table_data, message = extract_table_contents("temp_file.pbix", table_name)
+                    table_data, message = extract_table_contents(filepath, table_name)
                     if not table_data.empty:
                         st.write(f"Contents of Table: **{table_name}**")
                         st.dataframe(table_data)
