@@ -164,3 +164,41 @@ with st.expander("ðŸ’¬ 4. Ask Me Anything!"):
                 st.write(answer)
             except Exception as e:
                 st.error(f"Error during question processing: {e}")
+
+# Block for Table Contents Extraction
+with st.expander("📊 5. Extract Table Contents"):
+    st.write("Retrieve data from specific tables in your Power BI model for review and analysis.")
+
+    # Function to extract table contents
+    def extract_table_contents(file_path, table_name):
+        try:
+            model = PBIXRay(file_path)
+            table_data = model.get_table(table_name)
+            if table_data.empty:
+                return pd.DataFrame(), f"No data found in table '{table_name}'."
+            return table_data, "Table contents extracted successfully."
+        except Exception as e:
+            return pd.DataFrame(), f"Error during table extraction: {e}"
+
+    # Dropdown for selecting the table
+    if uploaded_file:
+        with open("temp_file.pbix", "wb") as f:
+            f.write(uploaded_file.getbuffer())
+        model = PBIXRay("temp_file.pbix")
+        table_names = model.schema['Table'].unique().tolist() if not model.schema.empty else []
+
+        table_name = st.selectbox("Select a table to extract:", table_names)
+
+        if st.button("Extract Table Data"):
+            if table_name:
+                table_data, message = extract_table_contents("temp_file.pbix", table_name)
+                if not table_data.empty:
+                    st.write(f"Contents of Table: **{table_name}**")
+                    st.dataframe(table_data)
+                else:
+                    st.write(message)
+            else:
+                st.warning("Please select a table.")
+    else:
+        st.warning("Please upload a PBIX file to proceed.")
+
