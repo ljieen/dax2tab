@@ -182,29 +182,32 @@ with st.expander("📊 5. Extract Table Contents"):
         except Exception as e:
             return pd.DataFrame(), f"Error during table extraction: {e}"
 
-            if uploaded_file:
-                with open("temp_file.pbix", "wb") as f:
-                    f.write(uploaded_file.getbuffer())
-            
-                # Initialize PBIXRay model
-                model = PBIXRay(filepath)
-            
-                # Fetch table names using model.tables
-                table_names = list(model.tables.keys())  # Use 'model.tables' directly
-            
-                # Dropdown for table selection
-                table_name = st.selectbox("Select a table to extract:", table_names if table_names else ["No tables found"])
-            
-            # Extract data if button is clicked
-            if st.button("Extract Table Data"):
-                if table_name and table_name != "No tables found":
-                    table_data, message = extract_table_contents(filepath, table_name)
-                    if not table_data.empty:
-                        st.write(f"Contents of Table: **{table_name}**")
-                        st.dataframe(table_data)
-                    else:
-                        st.write(message)
+    # Handle uploaded file
+    if uploaded_file:
+        # Save the uploaded file temporarily
+        with open("temp_file.pbix", "wb") as f:
+            f.write(uploaded_file.getbuffer())
+        
+        # Initialize PBIXRay model
+        model = PBIXRay("temp_file.pbix")
+        
+        # Fetch table names using model.tables
+        table_names = list(model.tables.keys())  # Use 'model.tables' directly
+
+        # Dropdown for table selection
+        table_name = st.selectbox("Select a table to extract:", table_names if table_names else ["No tables found"])
+
+        # Extract data if button is clicked
+        if st.button("Extract Table Data"):
+            if table_name and table_name != "No tables found":
+                # Extract contents of selected table
+                table_data, message = extract_table_contents("temp_file.pbix", table_name)
+                if not table_data.empty:
+                    st.write(f"Contents of Table: **{table_name}**")
+                    st.dataframe(table_data)
                 else:
-                    st.warning("Please select a valid table.")
-        else:
-            st.warning("Please upload a PBIX file to proceed.")
+                    st.write(message)
+            else:
+                st.warning("Please select a valid table.")
+    else:
+        st.warning("Please upload a PBIX file to proceed.")
