@@ -165,3 +165,53 @@ with st.expander("ðŸ’¬ 4. Ask Me Anything!"):
             except Exception as e:
                 st.error(f"Error during question processing: {e}")
 
+# Block for Table Contents Extraction
+with st.expander("📊 5. Extract Table Contents"):
+    st.write("Retrieve data from specific tables in your Power BI model for review and analysis.")
+
+    # Function to extract table contents
+    def extract_table_contents(file_path, table_name):
+        try:
+            # Load the PBIX model
+            model = PBIXRay(file_path)
+            # Extract table data
+            table_data = model.get_table(table_name)
+            if table_data.empty:
+                return pd.DataFrame(), f"No data found in table '{table_name}'."
+            return table_data, "Table contents extracted successfully."
+        except Exception as e:
+            return pd.DataFrame(), f"Error during table extraction: {e}"
+
+    # Dropdown for selecting the table
+    if uploaded_file:
+        with open("temp_file.pbix", "wb") as f:
+            f.write(uploaded_file.getbuffer())
+
+        # Initialize the PBIXRay model
+        model = PBIXRay("temp_file.pbix")
+
+        # Retrieve available table names from the schema
+        if not model.schema.empty and 'Table' in model.schema.columns:
+            table_names = model.schema['Table'].unique().tolist()
+        else:
+            table_names = []
+
+        # Create a dropdown menu for selecting a table
+        table_name = st.selectbox("Select a table to extract:", table_names)
+
+        # Button to extract table data
+        if st.button("Extract Table Data"):
+            if table_name:
+                # Extract table contents
+                table_data, message = extract_table_contents("temp_file.pbix", table_name)
+                if not table_data.empty:
+                    # Display table contents
+                    st.write(f"Contents of Table: **{table_name}**")
+                    st.dataframe(table_data)
+                else:
+                    st.write(message)
+            else:
+                st.warning("Please select a table.")
+    else:
+        st.warning("Please upload a PBIX file to proceed.")
+
