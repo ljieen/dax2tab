@@ -2,10 +2,22 @@ import streamlit as st
 import pandas as pd
 from pbixray import PBIXRay
 import io
-import openai
+from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
+import torch
 
-# Retrieve OpenAI API key from Streamlit secrets
-openai.api_key = st.secrets["openai"]["api_key"]
+# Load LLaMA 2 model and tokenizer
+@st.cache_resource
+def load_model():
+    tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-2-7b-chat-hf")
+    model = AutoModelForCausalLM.from_pretrained(
+        "meta-llama/Llama-2-7b-chat-hf",
+        torch_dtype=torch.float16,
+        device_map="auto"
+    )
+    pipe = pipeline("text-generation", model=model, tokenizer=tokenizer)
+    return pipe
+
+pipe = load_model()
 
 # Title and Welcome Message
 st.title("✨ DAX2Tab: PowerBI to Tableau Conversion Assistant")
@@ -20,8 +32,6 @@ with st.sidebar:
 # Block for Datasource Setup
 with st.expander("🔍 1. Datasource Setup"):
     st.write("This section helps identify key tables and columns in your Power BI data and suggests an appropriate Tableau datasource structure.")
-    st.write("• Identify key tables/columns")
-    st.write("• Suggest Tableau datasource structure")
 
     # Function to extract schema from the PBIX file
     def extract_schema(file_path):
@@ -63,31 +73,22 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
         except Exception as e:
             return f"Error during DAX extraction: {e}"
 
-    # Function to convert DAX to Tableau calculated field using OpenAI
+    # Function to convert DAX to Tableau calculated field using LLaMA 2
     def convert_dax_to_tableau(dax_expression):
         try:
-            with st.spinner("Converting DAX to Tableau calculated field..."):
-                response = openai.ChatCompletion.create(
-                    model="gpt-4",
-                    messages=[
-                        {"role": "system", "content": "You are an assistant that converts DAX expressions to Tableau calculated fields."},
-                        {"role": "user", "content": f"Convert this DAX expression to Tableau calculated field: {dax_expression}"}
-                    ],
-                    max_tokens=300
-                )
-            return response.choices[0].message['content'].strip()
+            prompt = f"Convert this DAX expression to Tableau calculated field: {dax_expression}"
+            result = pipe(prompt, max_length=200, num_return_sequences=1)[0]['generated_text']
+            return result
         except Exception as e:
             return f"Error during conversion: {e}"
 
     # Extract and Convert the First 5 DAX Expressions
     if st.button("Extract and Convert First 5 DAX Expressions to Tableau Calculated Fields"):
-        if not openai.api_key:
-            st.error("OpenAI API key is not configured.")
-        elif uploaded_file:
+        if uploaded_file:
             with open("temp_file.pbix", "wb") as f:
                 f.write(uploaded_file.getbuffer())
             dax_expressions = extract_all_dax_expressions("temp_file.pbix")
-            
+
             if isinstance(dax_expressions, pd.DataFrame) and not dax_expressions.empty:
                 st.write("DAX Expressions Table:")
                 st.table(dax_expressions)
@@ -117,9 +118,9 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
 
 # Block for Relationships Extraction
 with st.expander("🔗 3. Relationships Extraction"):
-    st.write("Extract relationships from your Power BI data model to help you maintain data integrity and relationships in Tableau.")
+    st.write("Extract table relationships from your Power BI model to streamline data connections in Tableau.")
 
-    # Function to extract relationships from the PBIX file
+    # Function to extract relationships
     def extract_relationships(file_path):
         try:
             model = PBIXRay(file_path)
@@ -143,24 +144,14 @@ with st.expander("🔗 3. Relationships Extraction"):
         else:
             st.warning("Please upload a PBIX file to proceed.")
 
-# Block for Q&A Section with ChatGPT
-with st.expander("💬 4. Ask Me Anything!"):
-    st.write("Have any questions about Power BI, DAX expressions, or Tableau? Ask here, and I'll do my best to help you!")
+# Block for Q&A
+with st.expander("❓ 4. Q&A"):
+    st.write("Ask any questions about the conversion process, and I'll assist you.")
+    question = st.text_input("Ask a question:")
 
-    question = st.text_input("Enter your question about Power BI DAX expressions or Tableau:")
-    if question:
-        with st.spinner("Generating answer..."):
-            try:
-                response = openai.ChatCompletion.create(
-                    model="gpt-4",
-                    messages=[
-                        {"role": "system", "content": "You are an assistant knowledgeable in Power BI DAX expressions and Tableau."},
-                        {"role": "user", "content": question}
-                    ],
-                    max_tokens=500
-                )
-                answer = response.choices[0].message['content'].strip()
-                st.write("**Answer:**")
-                st.write(answer)
-            except Exception as e:
-                st.error(f"Error during question processing: {e}")
+    if st.button("Get Answer"):
+        if question:
+            response = pipe(question, max_length=200, num_return_sequences=1)[0]['generated_text']
+            st.write("Answer:", response)
+        else:
+            st.warning("Please enter a question.")
