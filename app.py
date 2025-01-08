@@ -4,15 +4,20 @@ from pbixray import PBIXRay
 import io
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 import torch
+import os
 
 # Load LLaMA 2 model and tokenizer
 @st.cache_resource
 def load_model():
-    tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-2-7b-chat-hf")
+    # Set HF Token
+    os.environ["HF_TOKEN"] = "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"
+
+    tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-2-7b-chat-hf", use_auth_token=os.environ["HF_TOKEN"])
     model = AutoModelForCausalLM.from_pretrained(
         "meta-llama/Llama-2-7b-chat-hf",
         torch_dtype=torch.float16,
-        device_map="auto"
+        device_map="auto",
+        use_auth_token=os.environ["HF_TOKEN"]
     )
     pipe = pipeline("text-generation", model=model, tokenizer=tokenizer)
     return pipe
@@ -76,7 +81,7 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
     # Function to convert DAX to Tableau calculated field using LLaMA 2
     def convert_dax_to_tableau(dax_expression):
         try:
-            prompt = f"Convert this DAX expression to Tableau calculated field: {dax_expression}"
+            prompt = f"Convert this DAX expression to Tableau calculated field: {dax_expression}. Avoid hardcoding field names to generalize for different data sources." 
             result = pipe(prompt, max_length=200, num_return_sequences=1)[0]['generated_text']
             return result
         except Exception as e:
