@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 from pbixray import PBIXRay
-import io
 import openai
 
 # Retrieve OpenAI API key from Streamlit secrets
@@ -17,35 +16,81 @@ with st.sidebar:
     st.write("Upload your Power BI PBIX file to extract DAX expressions, schema, and relationships for conversion and analysis.")
     uploaded_file = st.file_uploader("Choose a PBIX file", type="pbix")
 
-# Block for Datasource Setup
+# Function to extract schema from the PBIX file
+def extract_schema(file_path):
+    try:
+        model = PBIXRay(file_path)
+        schema = model.schema
+        if schema.empty:
+            return "No schema found."
+        return schema
+    except Exception as e:
+        return f"Error during schema extraction: {e}"
+
+# Function to extract worksheet-table-column mapping
+def extract_worksheet_mappings(file_path):
+    try:
+        model = PBIXRay(file_path)
+        report_pages = model.report_pages
+
+        if not report_pages:
+            return "No report pages found."
+
+        worksheet_mappings = []
+
+        for page in report_pages:
+            page_name = page.get("Name", "Unknown Page")
+            visuals = page.get("Visuals", [])
+
+            for visual in visuals:
+                if "DataFields" in visual:
+                    for field in visual["DataFields"]:
+                        table_name = field.get("Table", "Unknown Table")
+                        column_name = field.get("Column", "Unknown Column")
+
+                        worksheet_mappings.append({
+                            "Worksheet": page_name,
+                            "Table": table_name,
+                            "Column": column_name
+                        })
+
+        return pd.DataFrame(worksheet_mappings)
+
+    except Exception as e:
+        return f"Error during worksheet extraction: {e}"
+
+# Expander: Datasource Setup
 with st.expander("🔍 1. Datasource Setup"):
     st.write("This section helps identify key tables and columns in your Power BI data and suggests an appropriate Tableau datasource structure.")
-    st.write("• Identify key tables/columns")
-    st.write("• Suggest Tableau datasource structure")
-
-    # Function to extract schema from the PBIX file
-    def extract_schema(file_path):
-        try:
-            model = PBIXRay(file_path)
-            schema = model.schema
-            if schema.empty:
-                return "No schema found."
-            return schema
-        except Exception as e:
-            return f"Error during schema extraction: {e}"
-
-    if st.button("Extract Schema"):
+    
+    if st.button("Extract Schema & Worksheet Mappings"):
         if uploaded_file:
             with open("temp_file.pbix", "wb") as f:
                 f.write(uploaded_file.getbuffer())
+
+            # Extract Schema
             schema = extract_schema("temp_file.pbix")
             if isinstance(schema, pd.DataFrame):
-                st.write("Schema:")
+                st.subheader("📌 Schema (Tables & Columns)")
                 st.dataframe(schema)
             else:
                 st.write(schema)
+
+            # Extract Worksheet Mappings
+            mappings = extract_worksheet_mappings("temp_file.pbix")
+            if isinstance(mappings, pd.DataFrame) and not mappings.empty:
+                st.subheader("📌 Report Page (Worksheet) Mappings")
+                for worksheet in mappings["Worksheet"].unique():
+                    filtered_data = mappings[mappings["Worksheet"] == worksheet]
+                    with st.expander(f"📄 {worksheet}"):
+                        st.dataframe(filtered_data)
+            else:
+                st.write(mappings)
         else:
             st.warning("Please upload a PBIX file to proceed.")
+
+# Other sections remain the same...
+
 
 # Block for Extracting and Converting DAX Expressions
 with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
