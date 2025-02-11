@@ -42,13 +42,11 @@ with st.expander("🔍 1. Datasource Setup"):
                 table_names = sorted(schema["TableName"].unique().tolist())
                 
                 st.subheader("📌 Extracted Tables")
-                st.write("Here are the tables found in your schema:")
                 for table in table_names:
-                    st.markdown(f"- **{table}**")
-                    columns = schema[schema["TableName"] == table]["ColumnName"].tolist()
-                    st.write("Columns:")
-                    for column in columns:
-                        st.markdown(f"  - {column}")
+                    with st.expander(f"📂 {table}"):
+                        columns = schema[schema["TableName"] == table]["ColumnName"].tolist()
+                        st.write("Columns:")
+                        st.write(columns if columns else "No columns found")
             else:
                 st.write(schema)
         else:
