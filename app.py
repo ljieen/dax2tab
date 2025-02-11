@@ -40,8 +40,15 @@ with st.expander("🔍 1. Datasource Setup"):
             schema = extract_schema("temp_file.pbix")
             if isinstance(schema, pd.DataFrame):
                 table_names = sorted(schema["TableName"].unique().tolist())
+                
                 st.subheader("📌 Extracted Tables")
-                st.write(table_names)
+                st.write("Here are the tables found in your schema:")
+                for table in table_names:
+                    st.markdown(f"- **{table}**")
+                    columns = schema[schema["TableName"] == table]["ColumnName"].tolist()
+                    st.write("Columns:")
+                    for column in columns:
+                        st.markdown(f"  - {column}")
             else:
                 st.write(schema)
         else:
