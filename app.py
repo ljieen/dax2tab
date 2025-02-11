@@ -16,56 +16,33 @@ with st.sidebar:
     st.write("Upload your Power BI PBIX file to extract DAX expressions, schema, and relationships for conversion and analysis.")
     uploaded_file = st.file_uploader("Choose a PBIX file", type="pbix")
 
-# Function to extract schema from the PBIX file
-def extract_schema(file_path):
-    try:
-        model = PBIXRay(file_path)
-        schema = model.schema
-        if schema.empty:
-            return "No schema found."
-        return schema
-    except Exception as e:
-        return f"Error during schema extraction: {e}"
-
-# Function to extract tables and columns
-def extract_tables_columns(file_path):
-    try:
-        model = PBIXRay(file_path)
-        schema = model.schema
-        if schema.empty:
-            return "No schema found."
-        
-        tables = schema["Table"].unique()
-        table_column_mapping = {
-            table: schema[schema["Table"] == table]["Column"].tolist()
-            for table in tables
-        }
-        
-        return table_column_mapping
-    except Exception as e:
-        return f"Error during table and column extraction: {e}"
-
-# Expander: Datasource Setup
+# Block for Datasource Setup
 with st.expander("🔍 1. Datasource Setup"):
     st.write("This section helps identify key tables and columns in your Power BI data and suggests an appropriate Tableau datasource structure.")
-    
-    if st.button("Extract Schema & Tables"):
+    st.write("• Identify key tables/columns")
+    st.write("• Suggest Tableau datasource structure")
+
+    # Function to extract schema from the PBIX file
+    def extract_schema(file_path):
+        try:
+            model = PBIXRay(file_path)
+            schema = model.schema
+            if schema.empty:
+                return "No schema found."
+            return schema
+        except Exception as e:
+            return f"Error during schema extraction: {e}"
+
+    if st.button("Extract Schema"):
         if uploaded_file:
             with open("temp_file.pbix", "wb") as f:
                 f.write(uploaded_file.getbuffer())
-
-            # Extract Tables and Columns
-            tables_columns = extract_tables_columns("temp_file.pbix")
-            
-            if isinstance(tables_columns, dict):
-                st.subheader("📌 Tables")
-                for table in sorted(tables_columns.keys()):
-                    with st.expander(f"📂 {table}"):
-                        columns = tables_columns[table]
-                        st.write("Columns:")
-                        st.write(columns if columns else "No columns found")
+            schema = extract_schema("temp_file.pbix")
+            if isinstance(schema, pd.DataFrame):
+                st.write("Schema:")
+                st.dataframe(schema)
             else:
-                st.write(tables_columns)
+                st.write(schema)
         else:
             st.warning("Please upload a PBIX file to proceed.")
 
