@@ -149,11 +149,16 @@ with st.expander("🔗 3. Relationships Extraction"):
                 else:
                     join_statements[key] = f"{row['FromTableName']} LEFT JOIN {row['ToTableName']} ON {condition}"
         
-        return pd.DataFrame({"From Table": [k[0] for k in join_statements.keys()],
-                             "To Table": [k[1] for k in join_statements.keys()],
-                             "Join Condition": list(join_statements.values())}) if join_statements else "No valid M:1 relationships found."
+        if join_statements:
+            return pd.DataFrame({
+                "From Table": [k[0] for k in join_statements.keys()],
+                "To Table": [k[1] for k in join_statements.keys()],
+                "Join Condition": list(join_statements.values())
+            })
+        else:
+            return "No valid M:1 relationships found."
     except Exception as e:
-        return f"Error during relationships extraction: {e}"
+        return f"Error during relationships extraction: {e}
 
     with st.expander("🔗 3. Relationships Extraction"):
     st.write("Extract relationships from your Power BI data model to help you maintain data integrity and relationships in Tableau.")
