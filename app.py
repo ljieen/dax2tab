@@ -33,7 +33,7 @@ with st.expander("🔍 1. Datasource Setup"):
         except Exception as e:
             return f"Error during schema extraction: {e}"
 
-    if st.button("Extract Schema"):
+     if st.button("Extract Schema"):
         if uploaded_file:
             with open("temp_file.pbix", "wb") as f:
                 f.write(uploaded_file.getbuffer())
@@ -43,7 +43,7 @@ with st.expander("🔍 1. Datasource Setup"):
                 
                 st.subheader("📌 Extracted Tables")
                 for table in table_names:
-                    with st.expander(f"📂 {table}"):
+                    if st.checkbox(f"📂 {table}"):
                         columns = schema[schema["TableName"] == table]["ColumnName"].tolist()
                         st.write("Columns:")
                         st.write(columns if columns else "No columns found")
