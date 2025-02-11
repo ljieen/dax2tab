@@ -39,16 +39,15 @@ with st.expander("🔍 1. Datasource Setup"):
                 f.write(uploaded_file.getbuffer())
             schema = extract_schema("temp_file.pbix")
             if isinstance(schema, pd.DataFrame):
-                st.write("Schema:")
-                st.dataframe(schema)
+                table_names = sorted(schema["TableName"].unique().tolist())
+                st.subheader("📌 Extracted Tables")
+                st.write(table_names)
             else:
                 st.write(schema)
         else:
             st.warning("Please upload a PBIX file to proceed.")
 
 # Other sections remain the same...
-
-
 # Block for Extracting and Converting DAX Expressions
 with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
     st.write("Extract the first five DAX expressions from your Power BI file and convert them into Tableau-compatible calculated fields for seamless migration.")
