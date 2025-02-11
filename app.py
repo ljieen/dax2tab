@@ -37,20 +37,27 @@ with st.expander("🔍 1. Datasource Setup"):
         if uploaded_file:
             with open("temp_file.pbix", "wb") as f:
                 f.write(uploaded_file.getbuffer())
+            
             schema = extract_schema("temp_file.pbix")
+            
             if isinstance(schema, pd.DataFrame):
                 table_names = sorted(schema["TableName"].unique().tolist())
                 
                 st.subheader("📌 Extracted Tables")
                 for table in table_names:
-                    if st.checkbox(f"📂 {table}"):
+                    with st.expander(f"📂 {table}"):
                         columns = schema[schema["TableName"] == table]["ColumnName"].tolist()
                         st.write("Columns:")
-                        st.write(columns if columns else "No columns found")
+                        if columns:
+                            for column in columns:
+                                st.markdown(f"- {column}")
+                        else:
+                            st.write("No columns found")
             else:
                 st.write(schema)
         else:
             st.warning("Please upload a PBIX file to proceed.")
+
 
 # Other sections remain the same...
 # Block for Extracting and Converting DAX Expressions
