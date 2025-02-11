@@ -33,7 +33,7 @@ with st.expander("🔍 1. Datasource Setup"):
         except Exception as e:
             return f"Error during schema extraction: {e}"
 
-     if st.button("Extract Schema"):
+    if st.button("Extract Schema"):
         if uploaded_file:
             with open("temp_file.pbix", "wb") as f:
                 f.write(uploaded_file.getbuffer())
@@ -50,7 +50,7 @@ with st.expander("🔍 1. Datasource Setup"):
                         st.write("Columns:")
                         if columns:
                             for column in columns:
-                                st.markdown(f"- {column}")
+                                st.write(f"- {column}")
                         else:
                             st.write("No columns found")
             else:
