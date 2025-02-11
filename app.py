@@ -17,21 +17,22 @@ with st.sidebar:
     uploaded_file = st.file_uploader("Choose a PBIX file", type="pbix")
 
 # Block for Datasource Setup
+# Function to extract schema from the PBIX file
+def extract_schema(file_path):
+    try:
+        model = PBIXRay(file_path)
+        schema = model.schema
+        if schema.empty:
+            return "No schema found."
+        return schema
+    except Exception as e:
+        return f"Error during schema extraction: {e}"
+
+# Expander: Datasource Setup
 with st.expander("🔍 1. Datasource Setup"):
     st.write("This section helps identify key tables and columns in your Power BI data and suggests an appropriate Tableau datasource structure.")
     st.write("• Identify key tables/columns")
     st.write("• Suggest Tableau datasource structure")
-
-    # Function to extract schema from the PBIX file
-    def extract_schema(file_path):
-        try:
-            model = PBIXRay(file_path)
-            schema = model.schema
-            if schema.empty:
-                return "No schema found."
-            return schema
-        except Exception as e:
-            return f"Error during schema extraction: {e}"
 
     if st.button("Extract Schema"):
         if uploaded_file:
@@ -50,9 +51,9 @@ with st.expander("🔍 1. Datasource Setup"):
                         st.write("Columns:")
                         if columns:
                             for column in columns:
-                                st.write(f"- {column}")
+                                st.markdown(f"- {column}")
                         else:
-                            st.write("No columns found")
+                            st.write("No columns found.")
             else:
                 st.write(schema)
         else:
