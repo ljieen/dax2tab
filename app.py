@@ -27,65 +27,45 @@ def extract_schema(file_path):
     except Exception as e:
         return f"Error during schema extraction: {e}"
 
-# Function to extract worksheet-table-column mapping
-def extract_worksheet_mappings(file_path):
+# Function to extract tables and columns
+def extract_tables_columns(file_path):
     try:
         model = PBIXRay(file_path)
-        report_pages = model.report_pages
-
-        if not report_pages:
-            return "No report pages found."
-
-        worksheet_mappings = []
-
-        for page in report_pages:
-            page_name = page.get("Name", "Unknown Page")
-            visuals = page.get("Visuals", [])
-
-            for visual in visuals:
-                if "DataFields" in visual:
-                    for field in visual["DataFields"]:
-                        table_name = field.get("Table", "Unknown Table")
-                        column_name = field.get("Column", "Unknown Column")
-
-                        worksheet_mappings.append({
-                            "Worksheet": page_name,
-                            "Table": table_name,
-                            "Column": column_name
-                        })
-
-        return pd.DataFrame(worksheet_mappings)
-
+        schema = model.schema
+        if schema.empty:
+            return "No schema found."
+        
+        tables = schema["Table"].unique()
+        table_column_mapping = {
+            table: schema[schema["Table"] == table]["Column"].tolist()
+            for table in tables
+        }
+        
+        return table_column_mapping
     except Exception as e:
-        return f"Error during worksheet extraction: {e}"
+        return f"Error during table and column extraction: {e}"
 
 # Expander: Datasource Setup
 with st.expander("🔍 1. Datasource Setup"):
     st.write("This section helps identify key tables and columns in your Power BI data and suggests an appropriate Tableau datasource structure.")
     
-    if st.button("Extract Schema & Worksheet Mappings"):
+    if st.button("Extract Schema & Tables"):
         if uploaded_file:
             with open("temp_file.pbix", "wb") as f:
                 f.write(uploaded_file.getbuffer())
 
-            # Extract Schema
-            schema = extract_schema("temp_file.pbix")
-            if isinstance(schema, pd.DataFrame):
-                st.subheader("📌 Schema (Tables & Columns)")
-                st.dataframe(schema)
+            # Extract Tables and Columns
+            tables_columns = extract_tables_columns("temp_file.pbix")
+            
+            if isinstance(tables_columns, dict):
+                st.subheader("📌 Tables")
+                for table in sorted(tables_columns.keys()):
+                    with st.expander(f"📂 {table}"):
+                        columns = tables_columns[table]
+                        st.write("Columns:")
+                        st.write(columns if columns else "No columns found")
             else:
-                st.write(schema)
-
-            # Extract Worksheet Mappings
-            mappings = extract_worksheet_mappings("temp_file.pbix")
-            if isinstance(mappings, pd.DataFrame) and not mappings.empty:
-                st.subheader("📌 Report Page (Worksheet) Mappings")
-                for worksheet in mappings["Worksheet"].unique():
-                    filtered_data = mappings[mappings["Worksheet"] == worksheet]
-                    with st.expander(f"📄 {worksheet}"):
-                        st.dataframe(filtered_data)
-            else:
-                st.write(mappings)
+                st.write(tables_columns)
         else:
             st.warning("Please upload a PBIX file to proceed.")
 
