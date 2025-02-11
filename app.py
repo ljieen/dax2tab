@@ -132,22 +132,41 @@ with st.expander("🔗 3. Relationships Extraction"):
 
     # Function to extract relationships from the PBIX file
     def extract_relationships(file_path):
-        try:
-            model = PBIXRay(file_path)
-            relationships = model.relationships
-            if relationships.empty:
-                return "No relationships found."
-            return relationships
-        except Exception as e:
-            return f"Error during relationships extraction: {e}"
+    try:
+        model = PBIXRay(file_path)
+        relationships = model.relationships
+        if relationships.empty:
+            return "No relationships found."
+        
+        join_statements = {}
+        for _, row in relationships.iterrows():
+            if row["Cardinality"] == "M:1":
+                key = (row['FromTableName'], row['ToTableName'])
+                condition = f"{row['FromTableName']}.{row['FromColumnName']} = {row['ToTableName']}.{row['ToColumnName']}"
+                
+                if key in join_statements:
+                    join_statements[key] += f" AND {condition}"
+                else:
+                    join_statements[key] = f"{row['FromTableName']} LEFT JOIN {row['ToTableName']} ON {condition}"
+        
+        return pd.DataFrame({"From Table": [k[0] for k in join_statements.keys()],
+                             "To Table": [k[1] for k in join_statements.keys()],
+                             "Join Condition": list(join_statements.values())}) if join_statements else "No valid M:1 relationships found."
+    except Exception as e:
+        return f"Error during relationships extraction: {e}"
 
+    with st.expander("🔗 3. Relationships Extraction"):
+    st.write("Extract relationships from your Power BI data model to help you maintain data integrity and relationships in Tableau.")
+    
     if st.button("Extract Relationships"):
         if uploaded_file:
             with open("temp_file.pbix", "wb") as f:
                 f.write(uploaded_file.getbuffer())
+            
             relationships = extract_relationships("temp_file.pbix")
+            
             if isinstance(relationships, pd.DataFrame):
-                st.write("Relationships:")
+                st.subheader("📌 Extracted Relationships")
                 st.dataframe(relationships)
             else:
                 st.write(relationships)
