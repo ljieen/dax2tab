@@ -78,12 +78,19 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
         except Exception as e:
             return f"Error during DAX extraction: {e}"
 
-    def chat_with_gpt(messages):
+    def convert_dax_to_tableau(dax_expression):
         try:
-            response = openai.ChatCompletion.create(model="gpt-4", messages=messages, max_tokens=500)
+            response = openai.ChatCompletion.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": "You are an assistant that converts DAX expressions to Tableau calculated fields without table names."},
+                    {"role": "user", "content": f"Convert this DAX expression to a Tableau calculated field without table names: {dax_expression}"}
+                ],
+                max_tokens=300
+            )
             return response.choices[0].message.get('content', '').strip()
         except Exception as e:
-            return f"Error during processing: {e}"
+            return f"Error during conversion: {e}"
 
     if st.button(f"Extract and Convert {num_expressions} DAX Expressions to Tableau Calculated Fields"):
         if 'uploaded_file' in st.session_state and st.session_state['uploaded_file']:
@@ -95,13 +102,15 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
                 st.write("DAX Expressions Table:")
                 st.table(dax_expressions)
 
+                tableau_calculated_fields = []
                 for i, row in dax_expressions.iterrows():
-                    st.session_state["chat_history"].append({"role": "user", "content": f"Convert this DAX expression to a Tableau calculated field without table names: {row['Expression']}"})
-                    answer = chat_with_gpt(st.session_state["chat_history"])
-                    st.session_state["chat_history"].append({"role": "assistant", "content": answer})
-                    st.write(f"### Conversion {i+1}")
-                    st.write("**DAX Expression:**", row['Expression'])
-                    st.write("**Tableau Calculated Field:**", answer)
+                    conversion = convert_dax_to_tableau(row['Expression'])
+                    tableau_calculated_fields.append({"DAX": row['Expression'], "Tableau": conversion})
+
+                for i, conv in enumerate(tableau_calculated_fields, 1):
+                    st.write(f"### Conversion {i}")
+                    st.write("**DAX Expression:**", conv["DAX"])
+                    st.write("**Tableau Calculated Field:**", conv["Tableau"])
 
                 st.subheader("💬 Chat with the Assistant")
                 chat_container = st.container()
@@ -109,8 +118,14 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
                 user_input = st.text_input("Ask a question or request a refinement:", key="chat_input")
                 if user_input:
                     st.session_state["chat_history"].append({"role": "user", "content": user_input})
-                    response = chat_with_gpt(st.session_state["chat_history"])
-                    st.session_state["chat_history"].append({"role": "assistant", "content": response})
+                    response = openai.ChatCompletion.create(
+                        model="gpt-4",
+                        messages=st.session_state["chat_history"],
+                        max_tokens=500
+                    )
+                    reply = response.choices[0].message.get('content', '').strip()
+                    st.session_state["chat_history"].append({"role": "assistant", "content": reply})
+                    st.write("**Response:**", reply)
 
                 for chat in st.session_state["chat_history"]:
                     with chat_container:
@@ -120,11 +135,6 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
                 st.write(dax_expressions if isinstance(dax_expressions, str) else "No DAX expressions found.")
         else:
             st.warning("Please upload a PBIX file to proceed.")
-
-
-
-
-
 ##relationship block
 
 with st.expander("🔗 3. Relationships Extraction"):
