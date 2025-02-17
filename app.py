@@ -127,6 +127,7 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
             st.warning("Please upload a PBIX file to proceed.")
 
 ##relationship block
+
 import streamlit as st
 import pandas as pd
 from pbixray import PBIXRay  # Assuming PBIXRay is the library used to extract relationships
@@ -145,19 +146,22 @@ with st.expander("🔗 3. Relationships Extraction"):
         except Exception as e:
             return f"Error during relationships extraction: {e}"
 
-    # Function to generate SQL LEFT JOIN scripts from the relationships table
+    # Function to generate SQL LEFT JOIN scripts from the relationships table for each row
     def generate_sql_scripts_from_relationships(df):
         sql_scripts = []
         current_from_table = None
         current_script = ""
 
-        for _, row in df.iterrows():
+        for index, row in df.iterrows():
             if row['FromTableName'] != current_from_table:
+                # Start a new SQL script when the FromTableName changes
                 current_from_table = row['FromTableName']
                 current_script = f"FROM {current_from_table} a"
-
-            current_script += f" LEFT JOIN {row['ToTableName']} b ON a.{row['FromColumnName']} = b.{row['ToColumnName']}"
-            sql_scripts.append(current_script)  # Append the current state for each row
+            
+            # Add the LEFT JOIN for the current row
+            current_row_script = f"{current_script} LEFT JOIN {row['ToTableName']} b ON a.{row['FromColumnName']} = b.{row['ToColumnName']}"
+            
+            sql_scripts.append(current_row_script)  # Append script for this specific row
 
         return sql_scripts
 
@@ -181,7 +185,7 @@ with st.expander("🔗 3. Relationships Extraction"):
                     cols_to_keep = list(active_relationships.columns[:crossfilter_index + 1]) + ['Suggested Joins']
                     active_relationships = active_relationships.loc[:, cols_to_keep]
 
-                # Generate SQL scripts directly from relationships table
+                # Generate SQL scripts directly from relationships table for each row
                 sql_scripts = generate_sql_scripts_from_relationships(active_relationships)
                 
                 # Assign the SQL scripts to each row
@@ -193,6 +197,7 @@ with st.expander("🔗 3. Relationships Extraction"):
                 st.write(relationships)
         else:
             st.warning("Please upload a PBIX file to proceed.")
+
 
 
 
