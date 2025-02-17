@@ -114,11 +114,30 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
                     st.write("**DAX Expression:**", conversion["DAX Expression"])
                     st.write("**Tableau Calculated Field:**", conversion["Tableau Calculated Field"])
                     st.write("---")
+
+                # Q&A section for users to ask questions about the conversions
+                st.subheader("💬 Ask Questions About the Conversions")
+                selected_conversion = st.selectbox("Select a conversion to ask about:", options=range(1, len(tableau_calculated_fields) + 1), format_func=lambda x: f"Conversion {x}")
+                user_question = st.text_area("Ask a question or request a refinement for the selected conversion:")
+                if user_question:
+                    with st.spinner("Processing your question..."):
+                        try:
+                            selected_conv = tableau_calculated_fields[selected_conversion - 1]
+                            messages = [
+                                {"role": "system", "content": "You are an assistant that helps with DAX to Tableau conversions. Ensure that table names are not included."},
+                                {"role": "user", "content": f"Here is a DAX expression: {selected_conv['DAX Expression']} and its Tableau conversion: {selected_conv['Tableau Calculated Field']}"},
+                                {"role": "user", "content": user_question}
+                            ]
+                            response = openai.ChatCompletion.create(model="gpt-4", messages=messages, max_tokens=500)
+                            answer = response.choices[0].message['content'].strip()
+                            st.write("**Response:**")
+                            st.write(answer)
+                        except Exception as e:
+                            st.error(f"Error during processing: {e}")
             else:
                 st.write(dax_expressions if isinstance(dax_expressions, str) else "No DAX expressions found.")
         else:
             st.warning("Please upload a PBIX file to proceed.")
-
 ##relationship block
 
 import streamlit as st
