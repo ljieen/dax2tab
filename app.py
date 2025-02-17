@@ -67,7 +67,7 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
     def extract_n_dax_expressions(file_path, n):
         try:
             model = PBIXRay(file_path)
-            dax_measures = model.dax_measures.head(n)  # Extract only first n rows directly
+            dax_measures = model.dax_measures.head(n)
             if dax_measures.empty or 'Expression' not in dax_measures.columns:
                 return "No DAX expressions found."
             dax_measures['Expression'] = dax_measures['Expression'].str.replace('\n', '', regex=False)
@@ -77,16 +77,15 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
 
     def convert_dax_to_tableau(dax_expression):
         try:
-            with st.spinner("Converting DAX to Tableau calculated field without table names..."):
-                response = openai.ChatCompletion.create(
-                    model="gpt-4",
-                    messages=[
-                        {"role": "system", "content": "You are an assistant that converts DAX expressions to Tableau calculated fields. Ensure that table names are not included in the Tableau calculated fields."},
-                        {"role": "user", "content": f"Convert this DAX expression to a Tableau calculated field without table names: {dax_expression}"}
-                    ],
-                    max_tokens=300
-                )
-                return response.choices[0].message.get('content', '').strip()
+            response = openai.ChatCompletion.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": "You are an assistant that converts DAX expressions to Tableau calculated fields. Ensure that table names are not included in the Tableau calculated fields."},
+                    {"role": "user", "content": f"Convert this DAX expression to a Tableau calculated field without table names: {dax_expression}"}
+                ],
+                max_tokens=300
+            )
+            return response.choices[0].message.get('content', '').strip()
         except Exception as e:
             return f"Error during conversion: {e}"
 
@@ -118,9 +117,13 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
 
                 st.subheader("💬 Ask Questions About the Conversions")
                 selected_conversion = st.selectbox("Select a conversion to ask about:", options=range(1, len(tableau_calculated_fields) + 1), format_func=lambda x: f"Conversion {x}")
-                user_question = st.text_input("Ask a question or request a refinement for the selected conversion:", on_change=None)
+                user_question = st.text_input("Ask a question or request a refinement for the selected conversion:", key="question_input")
 
-                if user_question:
+                if st.session_state.get("question_input") and st.session_state.get("input_submitted") is None:
+                    st.session_state["input_submitted"] = True
+                    st.experimental_rerun()
+
+                if st.session_state.get("input_submitted"):
                     with st.spinner("Processing your question..."):
                         try:
                             selected_conv = tableau_calculated_fields[selected_conversion - 1]
@@ -130,9 +133,12 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
                                 {"role": "user", "content": user_question}
                             ]
                             response = openai.ChatCompletion.create(model="gpt-4", messages=messages, max_tokens=500)
-                            answer = response.choices[0].message.get('content', '').strip()
-                            st.write("**Response:**")
-                            st.write(answer)
+                            if response.choices:
+                                answer = response.choices[0].message.get('content', '').strip()
+                                st.write("**Response:**")
+                                st.write(answer)
+                            else:
+                                st.error("No response received from OpenAI.")
                         except Exception as e:
                             st.error(f"Error during processing: {e}")
 
