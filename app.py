@@ -119,11 +119,7 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
                 selected_conversion = st.selectbox("Select a conversion to ask about:", options=range(1, len(tableau_calculated_fields) + 1), format_func=lambda x: f"Conversion {x}")
                 user_question = st.text_input("Ask a question or request a refinement for the selected conversion:", key="question_input")
 
-                if st.session_state.get("question_input") and st.session_state.get("input_submitted") is None:
-                    st.session_state["input_submitted"] = True
-                    st.experimental_rerun()
-
-                if st.session_state.get("input_submitted"):
+                if user_question:
                     with st.spinner("Processing your question..."):
                         try:
                             selected_conv = tableau_calculated_fields[selected_conversion - 1]
@@ -142,10 +138,13 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
                         except Exception as e:
                             st.error(f"Error during processing: {e}")
 
+                st.stop()  # Prevents the app from rerunning when pressing Enter
+
             else:
                 st.write(dax_expressions if isinstance(dax_expressions, str) else "No DAX expressions found.")
         else:
             st.warning("Please upload a PBIX file to proceed.")
+
 
 
 ##relationship block
