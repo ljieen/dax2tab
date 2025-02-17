@@ -137,42 +137,53 @@ if 'chat_history' not in st.session_state:
 # This Q&A block should be integrated after the DAX expression extraction and conversion section in the main app.
 # Place it right after the section where converted DAX expressions are displayed.
 
+if 'conversions' not in st.session_state:
+    st.session_state.conversions = []
+if 'chat_history' not in st.session_state:
+    st.session_state.chat_history = []
+
+# Integrate this block directly after the DAX extraction and conversion section in the main app.
+# Make sure to pass extracted DAX conversions to st.session_state.conversions.
+
 with st.expander("💬 DAX Conversion Q&A and Feedback"):
-    if st.session_state.conversions:
+    if not st.session_state.conversions:
+        st.warning("No conversions available. Please run the DAX extraction and conversion first.")
+    else:
         st.subheader("Existing Conversions")
         for idx, conv in enumerate(st.session_state.conversions):
             st.write(f"**Conversion {idx + 1}:**")
-            st.write(f"**DAX:** {conv['dax']}")
-            st.write(f"**Tableau:** {conv['tableau']}")
+            st.write(f"**DAX:** {conv.get('DAX Expression', 'N/A')}")
+            st.write(f"**Tableau:** {conv.get('Tableau Calculated Field', 'N/A')}")
 
-    st.subheader("Ask Questions or Provide Feedback")
-    selected_conversion = st.selectbox("Select a conversion to discuss:", options=range(1, len(st.session_state.conversions) + 1), format_func=lambda x: f"Conversion {x}")
+        st.subheader("Ask Questions or Provide Feedback")
+        selected_conversion = st.selectbox("Select a conversion to discuss:", options=range(1, len(st.session_state.conversions) + 1), format_func=lambda x: f"Conversion {x}")
 
-    user_input = st.text_input("Ask a question, request a refinement, or provide feedback about this conversion:")
-    if user_input:
-        with st.spinner("Processing your input..."):
-            try:
-                conversion = st.session_state.conversions[selected_conversion - 1]
-                messages = [
-                    {"role": "system", "content": "You are an assistant knowledgeable in Power BI DAX expressions and Tableau calculated fields."},
-                    {"role": "user", "content": f"Here is a DAX expression: {conversion['dax']} and its Tableau conversion: {conversion['tableau']}"},
-                    {"role": "user", "content": user_input}
-                ]
-                response = openai.ChatCompletion.create(model="gpt-4", messages=messages, max_tokens=500)
-                answer = response.choices[0].message['content'].strip()
-                st.session_state.chat_history.append({"conversion": selected_conversion, "input": user_input, "answer": answer})
-                st.write("**Response:**")
-                st.write(answer)
-            except Exception as e:
-                st.error(f"Error during processing: {e}")
+        user_input = st.text_input("Ask a question, request a refinement, or provide feedback about this conversion:")
+        if user_input:
+            with st.spinner("Processing your input..."):
+                try:
+                    conversion = st.session_state.conversions[selected_conversion - 1]
+                    messages = [
+                        {"role": "system", "content": "You are an assistant knowledgeable in Power BI DAX expressions and Tableau calculated fields."},
+                        {"role": "user", "content": f"Here is a DAX expression: {conversion.get('DAX Expression', 'N/A')} and its Tableau conversion: {conversion.get('Tableau Calculated Field', 'N/A')}"},
+                        {"role": "user", "content": user_input}
+                    ]
+                    response = openai.ChatCompletion.create(model="gpt-4", messages=messages, max_tokens=500)
+                    answer = response.choices[0].message['content'].strip()
+                    st.session_state.chat_history.append({"conversion": selected_conversion, "input": user_input, "answer": answer})
+                    st.write("**Response:**")
+                    st.write(answer)
+                except Exception as e:
+                    st.error(f"Error during processing: {e}")
 
-    if st.session_state.chat_history:
-        st.subheader("📝 Chat History")
-        for chat in st.session_state.chat_history:
-            st.write(f"**Conversion {chat['conversion']}:**")
-            st.write(f"**User Input:** {chat['input']}")
-            st.write(f"**Response:** {chat['answer']}")
-            st.write("---")
+        if st.session_state.chat_history:
+            st.subheader("📝 Chat History")
+            for chat in st.session_state.chat_history:
+                st.write(f"**Conversion {chat['conversion']}:**")
+                st.write(f"**User Input:** {chat['input']}")
+                st.write(f"**Response:** {chat['answer']}")
+                st.write("---")
+
 
 # Add this block after the DAX expression conversion section in your main app file to integrate smoothly with the conversion flow.
 
