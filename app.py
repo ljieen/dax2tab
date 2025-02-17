@@ -125,6 +125,8 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
                 st.write(dax_expressions if isinstance(dax_expressions, str) else "No DAX expressions found.")
         else:
             st.warning("Please upload a PBIX file to proceed.")
+
+##relationship block
 with st.expander("🔗 3. Relationships Extraction"):
     st.write("Extract relationships from your Power BI data model to help you maintain data integrity and relationships in Tableau.")
 
@@ -150,7 +152,17 @@ with st.expander("🔗 3. Relationships Extraction"):
                 
                 # Add Suggested Joins column based on Cardinality
                 active_relationships['Suggested Joins'] = active_relationships['Cardinality'].apply(
-                    lambda x: 'Left Join at Physical Layer or M:1 at logical layer' if x == 'M:1' else 'N/A'
+                    lambda x: 'Left Join at Physical Layer / M:1 at logical layer' if x == 'M:1' else 'N/A'
+                )
+                
+                # Keep columns up to CrossFilteringBehaviour and add Suggested Joins
+                if 'CrossFilteringBehaviour' in active_relationships.columns:
+                    col_index = active_relationships.columns.get_loc('CrossFilteringBehaviour')
+                    active_relationships = active_relationships.iloc[:, :col_index + 1]
+                
+                # Add back the Suggested Joins column
+                active_relationships['Suggested Joins'] = active_relationships['Cardinality'].apply(
+                    lambda x: 'Left join at physical layer or M:1 at logical layer' if x == 'M:1' else 'N/A'
                 )
                 
                 st.write("Active Relationships with Suggested Joins:")
