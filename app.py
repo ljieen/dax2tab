@@ -67,11 +67,11 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
     def extract_n_dax_expressions(file_path, n):
         try:
             model = PBIXRay(file_path)
-            dax_measures = model.dax_measures
+            dax_measures = model.dax_measures.head(n)  # Extract only first n rows directly
             if dax_measures.empty or 'Expression' not in dax_measures.columns:
                 return "No DAX expressions found."
             dax_measures['Expression'] = dax_measures['Expression'].str.replace('\n', '', regex=False)
-            return dax_measures[['Expression']].head(n)
+            return dax_measures[['Expression']]
         except Exception as e:
             return f"Error during DAX extraction: {e}"
 
@@ -120,7 +120,7 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
                 selected_conversion = st.selectbox("Select a conversion to ask about:", options=range(1, len(tableau_calculated_fields) + 1), format_func=lambda x: f"Conversion {x}")
                 user_question = st.text_input("Ask a question or request a refinement for the selected conversion:", on_change=None)
 
-                if st.session_state.get('input_submitted'):
+                if user_question:
                     with st.spinner("Processing your question..."):
                         try:
                             selected_conv = tableau_calculated_fields[selected_conversion - 1]
@@ -130,23 +130,17 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
                                 {"role": "user", "content": user_question}
                             ]
                             response = openai.ChatCompletion.create(model="gpt-4", messages=messages, max_tokens=500)
-                            if response.choices:
-                                answer = response.choices[0].message.get('content', '').strip()
-                                st.write("**Response:**")
-                                st.write(answer)
-                            else:
-                                st.error("No response received from OpenAI.")
+                            answer = response.choices[0].message.get('content', '').strip()
+                            st.write("**Response:**")
+                            st.write(answer)
                         except Exception as e:
                             st.error(f"Error during processing: {e}")
-
-                if user_question and st.session_state.get('input_submitted') is None:
-                    st.session_state['input_submitted'] = True
-                    st.experimental_rerun()
 
             else:
                 st.write(dax_expressions if isinstance(dax_expressions, str) else "No DAX expressions found.")
         else:
             st.warning("Please upload a PBIX file to proceed.")
+
 
 ##relationship block
 
