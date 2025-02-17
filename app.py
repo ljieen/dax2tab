@@ -60,9 +60,8 @@ with st.expander("🔍 1. Datasource Setup"):
 # Other sections remain the same...
 # Block for Extracting and Converting DAX Expressions
 with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
-    st.write("Extract the first five DAX expressions from your Power BI file and convert them into Tableau-compatible calculated fields for seamless migration.")
+    st.write("Extract the first five DAX expressions from your Power BI file and convert them into Tableau-compatible calculated fields without including table names.")
 
-    # Function to extract all DAX expressions from a PBIX file
     def extract_all_dax_expressions(file_path):
         try:
             model = PBIXRay(file_path)
@@ -74,15 +73,14 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
         except Exception as e:
             return f"Error during DAX extraction: {e}"
 
-    # Function to convert DAX to Tableau calculated field using OpenAI
     def convert_dax_to_tableau(dax_expression):
         try:
-            with st.spinner("Converting DAX to Tableau calculated field..."):
+            with st.spinner("Converting DAX to Tableau calculated field without table names..."):
                 response = openai.ChatCompletion.create(
                     model="gpt-4",
                     messages=[
-                        {"role": "system", "content": "You are an assistant that converts DAX expressions to Tableau calculated fields."},
-                        {"role": "user", "content": f"Convert this DAX expression to Tableau calculated field: {dax_expression}"}
+                        {"role": "system", "content": "You are an assistant that converts DAX expressions to Tableau calculated fields. Ensure that table names are not included in the Tableau calculated fields."},
+                        {"role": "user", "content": f"Convert this DAX expression to a Tableau calculated field without table names: {dax_expression}"}
                     ],
                     max_tokens=300
                 )
@@ -90,7 +88,6 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
         except Exception as e:
             return f"Error during conversion: {e}"
 
-    # Extract and Convert the First 5 DAX Expressions
     if st.button("Extract and Convert First 5 DAX Expressions to Tableau Calculated Fields"):
         if not openai.api_key:
             st.error("OpenAI API key is not configured.")
@@ -98,15 +95,12 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
             with open("temp_file.pbix", "wb") as f:
                 f.write(uploaded_file.getbuffer())
             dax_expressions = extract_all_dax_expressions("temp_file.pbix")
-            
+
             if isinstance(dax_expressions, pd.DataFrame) and not dax_expressions.empty:
                 st.write("DAX Expressions Table:")
                 st.table(dax_expressions)
 
-                # Limit to the first five expressions
                 first_five_dax_expressions = dax_expressions['Expression'].head(5)
-
-                # Convert each of the first five DAX expressions to Tableau calculated fields
                 tableau_calculated_fields = []
                 for i, dax_expression in enumerate(first_five_dax_expressions, 1):
                     tableau_calculated_field = convert_dax_to_tableau(dax_expression)
@@ -115,7 +109,6 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
                         "Tableau Calculated Field": tableau_calculated_field
                     })
 
-                # Display converted expressions
                 for i, conversion in enumerate(tableau_calculated_fields, 1):
                     st.write(f"### Conversion {i}")
                     st.write("**DAX Expression:**", conversion["DAX Expression"])
