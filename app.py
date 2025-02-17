@@ -59,6 +59,9 @@ with st.expander("🔍 1. Datasource Setup"):
 
 # Other sections remain the same...
 # Block for Extracting and Converting DAX Expressions
+if "chat_history" not in st.session_state:
+    st.session_state["chat_history"] = []
+
 with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
     st.write("Extract and convert the first N DAX expressions from your Power BI file to Tableau-compatible calculated fields without including table names.")
 
@@ -83,7 +86,7 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
             return f"Error during processing: {e}"
 
     if st.button(f"Extract and Convert {num_expressions} DAX Expressions to Tableau Calculated Fields"):
-        if uploaded_file:
+        if 'uploaded_file' in locals() or 'uploaded_file' in globals():
             with open("temp_file.pbix", "wb") as f:
                 f.write(uploaded_file.getbuffer())
             dax_expressions = extract_n_dax_expressions("temp_file.pbix", num_expressions)
@@ -93,25 +96,25 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
                 st.table(dax_expressions)
 
                 for i, row in dax_expressions.iterrows():
-                    st.session_state.chat_history.append({"role": "user", "content": f"Convert this DAX expression to a Tableau calculated field without table names: {row['Expression']}"})
-                    answer = chat_with_gpt(st.session_state.chat_history)
-                    st.session_state.chat_history.append({"role": "assistant", "content": answer})
+                    st.session_state["chat_history"].append({"role": "user", "content": f"Convert this DAX expression to a Tableau calculated field without table names: {row['Expression']}"})
+                    answer = chat_with_gpt(st.session_state["chat_history"])
+                    st.session_state["chat_history"].append({"role": "assistant", "content": answer})
                     st.write(f"### Conversion {i+1}")
                     st.write("**DAX Expression:**", row['Expression'])
                     st.write("**Tableau Calculated Field:**", answer)
 
                 st.subheader("💬 Chat with the Assistant")
-                user_input = st.text_input("Continue the conversation:")
+                user_input = st.text_input("Continue the conversation:", key="chat_input")
                 if user_input:
-                    st.session_state.chat_history.append({"role": "user", "content": user_input})
-                    response = chat_with_gpt(st.session_state.chat_history)
-                    st.session_state.chat_history.append({"role": "assistant", "content": response})
+                    st.session_state["chat_history"].append({"role": "user", "content": user_input})
+                    response = chat_with_gpt(st.session_state["chat_history"])
+                    st.session_state["chat_history"].append({"role": "assistant", "content": response})
                     st.write("**Response:**")
                     st.write(response)
 
-                if st.session_state.chat_history:
+                if st.session_state["chat_history"]:
                     st.subheader("📝 Chat History")
-                    for chat in st.session_state.chat_history:
+                    for chat in st.session_state["chat_history"]:
                         st.write(f"**{chat['role'].capitalize()}:** {chat['content']}")
             else:
                 st.write(dax_expressions if isinstance(dax_expressions, str) else "No DAX expressions found.")
