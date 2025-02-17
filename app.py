@@ -75,24 +75,15 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
         except Exception as e:
             return f"Error during DAX extraction: {e}"
 
-    def convert_dax_to_tableau(dax_expression):
+    def chat_with_gpt(messages):
         try:
-            response = openai.ChatCompletion.create(
-                model="gpt-4",
-                messages=[
-                    {"role": "system", "content": "You are an assistant that converts DAX expressions to Tableau calculated fields. Ensure that table names are not included in the Tableau calculated fields."},
-                    {"role": "user", "content": f"Convert this DAX expression to a Tableau calculated field without table names: {dax_expression}"}
-                ],
-                max_tokens=300
-            )
+            response = openai.ChatCompletion.create(model="gpt-4", messages=messages, max_tokens=500)
             return response.choices[0].message.get('content', '').strip()
         except Exception as e:
-            return f"Error during conversion: {e}"
+            return f"Error during processing: {e}"
 
     if st.button(f"Extract and Convert {num_expressions} DAX Expressions to Tableau Calculated Fields"):
-        if not openai.api_key:
-            st.error("OpenAI API key is not configured.")
-        elif uploaded_file:
+        if uploaded_file:
             with open("temp_file.pbix", "wb") as f:
                 f.write(uploaded_file.getbuffer())
             dax_expressions = extract_n_dax_expressions("temp_file.pbix", num_expressions)
@@ -101,55 +92,32 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
                 st.write("DAX Expressions Table:")
                 st.table(dax_expressions)
 
-                tableau_calculated_fields = []
-                for i, dax_expression in enumerate(dax_expressions['Expression'], 1):
-                    tableau_calculated_field = convert_dax_to_tableau(dax_expression)
-                    tableau_calculated_fields.append({
-                        "DAX Expression": dax_expression,
-                        "Tableau Calculated Field": tableau_calculated_field
-                    })
+                for i, row in dax_expressions.iterrows():
+                    st.session_state.chat_history.append({"role": "user", "content": f"Convert this DAX expression to a Tableau calculated field without table names: {row['Expression']}"})
+                    answer = chat_with_gpt(st.session_state.chat_history)
+                    st.session_state.chat_history.append({"role": "assistant", "content": answer})
+                    st.write(f"### Conversion {i+1}")
+                    st.write("**DAX Expression:**", row['Expression'])
+                    st.write("**Tableau Calculated Field:**", answer)
 
-                for i, conversion in enumerate(tableau_calculated_fields, 1):
-                    st.write(f"### Conversion {i}")
-                    st.write("**DAX Expression:**", conversion["DAX Expression"])
-                    st.write("**Tableau Calculated Field:**", conversion["Tableau Calculated Field"])
-                    st.write("---")
+                st.subheader("💬 Chat with the Assistant")
+                user_input = st.text_input("Continue the conversation:")
+                if user_input:
+                    st.session_state.chat_history.append({"role": "user", "content": user_input})
+                    response = chat_with_gpt(st.session_state.chat_history)
+                    st.session_state.chat_history.append({"role": "assistant", "content": response})
+                    st.write("**Response:**")
+                    st.write(response)
 
-                st.subheader("💬 Ask Questions About the Conversions")
-                selected_conversion = st.selectbox("Select a conversion to ask about:", options=range(1, len(tableau_calculated_fields) + 1), format_func=lambda x: f"Conversion {x}")
-                user_question = st.text_area("Ask a question or request a refinement for the selected conversion:", key="question_input")
-
-                if user_question:
-                    with st.spinner("Processing your question..."):
-                        try:
-                            selected_conv = tableau_calculated_fields[selected_conversion - 1]
-                            messages = [
-                                {"role": "system", "content": "You are an assistant that helps with DAX to Tableau conversions. Ensure that table names are not included."},
-                                {"role": "user", "content": f"Here is a DAX expression: {selected_conv['DAX Expression']} and its Tableau conversion: {selected_conv['Tableau Calculated Field']}"},
-                                {"role": "user", "content": user_question}
-                            ]
-                            response = openai.ChatCompletion.create(model="gpt-4", messages=messages, max_tokens=500)
-                            if response.choices:
-                                answer = response.choices[0].message.get('content', '').strip()
-                                st.write("**Response:**")
-                                st.write(answer)
-                            else:
-                                st.error("No response received from OpenAI.")
-                        except Exception as e:
-                            st.error(f"Error during processing: {e}")
-
-                # Use a Streamlit form to prevent auto-refresh on Enter
-                with st.form(key='question_form'):
-                    user_input = st.text_area("Type your question and press Submit:")
-                    submitted = st.form_submit_button("Submit")
-                    if submitted and user_input:
-                        st.session_state['user_question'] = user_input
-                        st.experimental_rerun()
-
+                if st.session_state.chat_history:
+                    st.subheader("📝 Chat History")
+                    for chat in st.session_state.chat_history:
+                        st.write(f"**{chat['role'].capitalize()}:** {chat['content']}")
             else:
                 st.write(dax_expressions if isinstance(dax_expressions, str) else "No DAX expressions found.")
         else:
             st.warning("Please upload a PBIX file to proceed.")
+
 
 
 
