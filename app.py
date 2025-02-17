@@ -117,7 +117,7 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
 
                 st.subheader("💬 Ask Questions About the Conversions")
                 selected_conversion = st.selectbox("Select a conversion to ask about:", options=range(1, len(tableau_calculated_fields) + 1), format_func=lambda x: f"Conversion {x}")
-                user_question = st.text_input("Ask a question or request a refinement for the selected conversion:", key="question_input")
+                user_question = st.text_area("Ask a question or request a refinement for the selected conversion:", key="question_input")
 
                 if user_question:
                     with st.spinner("Processing your question..."):
@@ -138,7 +138,13 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
                         except Exception as e:
                             st.error(f"Error during processing: {e}")
 
-                st.stop()  # Prevents the app from rerunning when pressing Enter
+                # Use a Streamlit form to prevent auto-refresh on Enter
+                with st.form(key='question_form'):
+                    user_input = st.text_area("Type your question and press Submit:")
+                    submitted = st.form_submit_button("Submit")
+                    if submitted and user_input:
+                        st.session_state['user_question'] = user_input
+                        st.experimental_rerun()
 
             else:
                 st.write(dax_expressions if isinstance(dax_expressions, str) else "No DAX expressions found.")
