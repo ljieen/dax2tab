@@ -59,18 +59,14 @@ with st.expander("🔍 1. Datasource Setup"):
 
 # Other sections remain the same...
 # Block for Extracting and Converting DAX Expressions
-if "chat_history" not in st.session_state:
-    st.session_state["chat_history"] = []
-
 with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
-    st.write("Extract and convert the first N DAX expressions from your Power BI file to Tableau-compatible calculated fields without including table names.")
+    st.write("Extract the first five DAX expressions from your Power BI file and convert them into Tableau-compatible calculated fields for seamless migration.")
 
-    num_expressions = st.number_input("Enter the number of DAX expressions to extract and convert:", min_value=1, value=5, step=1)
-
-    def extract_n_dax_expressions(file_path, n):
+    # Function to extract all DAX expressions from a PBIX file
+    def extract_all_dax_expressions(file_path):
         try:
             model = PBIXRay(file_path)
-            dax_measures = model.dax_measures.head(n)
+            dax_measures = model.dax_measures
             if dax_measures.empty or 'Expression' not in dax_measures.columns:
                 return "No DAX expressions found."
             dax_measures['Expression'] = dax_measures['Expression'].str.replace('\n', '', regex=False)
@@ -78,59 +74,53 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
         except Exception as e:
             return f"Error during DAX extraction: {e}"
 
+    # Function to convert DAX to Tableau calculated field using OpenAI
     def convert_dax_to_tableau(dax_expression):
         try:
-            response = openai.ChatCompletion.create(
-                model="gpt-4",
-                messages=[
-                    {"role": "system", "content": "You are an assistant that converts DAX expressions to Tableau calculated fields without table names."},
-                    {"role": "user", "content": f"Convert this DAX expression to a Tableau calculated field without table names: {dax_expression}"}
-                ],
-                max_tokens=300
-            )
-            return response.choices[0].message.get('content', '').strip()
+            with st.spinner("Converting DAX to Tableau calculated field..."):
+                response = openai.ChatCompletion.create(
+                    model="gpt-4",
+                    messages=[
+                        {"role": "system", "content": "You are an assistant that converts DAX expressions to Tableau calculated fields."},
+                        {"role": "user", "content": f"Convert this DAX expression to Tableau calculated field: {dax_expression}"}
+                    ],
+                    max_tokens=300
+                )
+            return response.choices[0].message['content'].strip()
         except Exception as e:
             return f"Error during conversion: {e}"
 
-    if st.button(f"Extract and Convert {num_expressions} DAX Expressions to Tableau Calculated Fields"):
-        if 'uploaded_file' in st.session_state and st.session_state['uploaded_file']:
+    # Extract and Convert the First 5 DAX Expressions
+    if st.button("Extract and Convert First 5 DAX Expressions to Tableau Calculated Fields"):
+        if not openai.api_key:
+            st.error("OpenAI API key is not configured.")
+        elif uploaded_file:
             with open("temp_file.pbix", "wb") as f:
-                f.write(st.session_state['uploaded_file'].getbuffer())
-            dax_expressions = extract_n_dax_expressions("temp_file.pbix", num_expressions)
-
+                f.write(uploaded_file.getbuffer())
+            dax_expressions = extract_all_dax_expressions("temp_file.pbix")
+            
             if isinstance(dax_expressions, pd.DataFrame) and not dax_expressions.empty:
                 st.write("DAX Expressions Table:")
                 st.table(dax_expressions)
 
+                # Limit to the first five expressions
+                first_five_dax_expressions = dax_expressions['Expression'].head(5)
+
+                # Convert each of the first five DAX expressions to Tableau calculated fields
                 tableau_calculated_fields = []
-                for i, row in dax_expressions.iterrows():
-                    conversion = convert_dax_to_tableau(row['Expression'])
-                    tableau_calculated_fields.append({"DAX": row['Expression'], "Tableau": conversion})
+                for i, dax_expression in enumerate(first_five_dax_expressions, 1):
+                    tableau_calculated_field = convert_dax_to_tableau(dax_expression)
+                    tableau_calculated_fields.append({
+                        "DAX Expression": dax_expression,
+                        "Tableau Calculated Field": tableau_calculated_field
+                    })
 
-                for i, conv in enumerate(tableau_calculated_fields, 1):
+                # Display converted expressions
+                for i, conversion in enumerate(tableau_calculated_fields, 1):
                     st.write(f"### Conversion {i}")
-                    st.write("**DAX Expression:**", conv["DAX"])
-                    st.write("**Tableau Calculated Field:**", conv["Tableau"])
-
-                st.subheader("💬 Chat with the Assistant")
-                chat_container = st.container()
-
-                user_input = st.text_input("Ask a question or request a refinement:", key="chat_input")
-                if user_input:
-                    st.session_state["chat_history"].append({"role": "user", "content": user_input})
-                    response = openai.ChatCompletion.create(
-                        model="gpt-4",
-                        messages=st.session_state["chat_history"],
-                        max_tokens=500
-                    )
-                    reply = response.choices[0].message.get('content', '').strip()
-                    st.session_state["chat_history"].append({"role": "assistant", "content": reply})
-                    st.write("**Response:**", reply)
-
-                for chat in st.session_state["chat_history"]:
-                    with chat_container:
-                        st.write(f"**{chat['role'].capitalize()}:** {chat['content']}")
-
+                    st.write("**DAX Expression:**", conversion["DAX Expression"])
+                    st.write("**Tableau Calculated Field:**", conversion["Tableau Calculated Field"])
+                    st.write("---")
             else:
                 st.write(dax_expressions if isinstance(dax_expressions, str) else "No DAX expressions found.")
         else:
