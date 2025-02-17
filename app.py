@@ -125,7 +125,6 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
                 st.write(dax_expressions if isinstance(dax_expressions, str) else "No DAX expressions found.")
         else:
             st.warning("Please upload a PBIX file to proceed.")
-# Block for Relationships Extraction
 with st.expander("🔗 3. Relationships Extraction"):
     st.write("Extract relationships from your Power BI data model to help you maintain data integrity and relationships in Tableau.")
 
@@ -146,12 +145,15 @@ with st.expander("🔗 3. Relationships Extraction"):
                 f.write(uploaded_file.getbuffer())
             relationships = extract_relationships("temp_file.pbix")
             if isinstance(relationships, pd.DataFrame):
-                st.write("Relationships:")
-                st.dataframe(relationships)
+                # Filter to show only active relationships
+                active_relationships = relationships[relationships['IsActive'] == 1]
+                st.write("Active Relationships:")
+                st.dataframe(active_relationships)
             else:
                 st.write(relationships)
         else:
             st.warning("Please upload a PBIX file to proceed.")
+
 
 # Block for Q&A Section with ChatGPT
 with st.expander("💬 4. Ask Me Anything!"):
