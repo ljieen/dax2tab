@@ -145,15 +145,20 @@ with st.expander("🔗 3. Relationships Extraction"):
                 f.write(uploaded_file.getbuffer())
             relationships = extract_relationships("temp_file.pbix")
             if isinstance(relationships, pd.DataFrame):
-                # Filter to show only active relationships
+                # Filter active relationships
                 active_relationships = relationships[relationships['IsActive'] == 1]
-                st.write("Active Relationships:")
+                
+                # Add Suggested Joins column based on Cardinality
+                active_relationships['Suggested Joins'] = active_relationships['Cardinality'].apply(
+                    lambda x: 'Left join at physical layer or M:1 at logical layer' if x == 'M:1' else 'N/A'
+                )
+                
+                st.write("Active Relationships with Suggested Joins:")
                 st.dataframe(active_relationships)
             else:
                 st.write(relationships)
         else:
             st.warning("Please upload a PBIX file to proceed.")
-
 
 # Block for Q&A Section with ChatGPT
 with st.expander("💬 4. Ask Me Anything!"):
