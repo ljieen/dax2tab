@@ -60,18 +60,18 @@ with st.expander("🔍 1. Datasource Setup"):
 # Other sections remain the same...
 # Block for Extracting and Converting DAX Expressions
 with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
-    st.write("Extract and convert DAX expressions from your Power BI file to Tableau-compatible calculated fields without including table names.")
+    st.write("Extract and convert the first N DAX expressions from your Power BI file to Tableau-compatible calculated fields without including table names.")
 
     num_expressions = st.number_input("Enter the number of DAX expressions to extract and convert:", min_value=1, value=5, step=1)
 
-    def extract_all_dax_expressions(file_path):
+    def extract_n_dax_expressions(file_path, n):
         try:
             model = PBIXRay(file_path)
             dax_measures = model.dax_measures
             if dax_measures.empty or 'Expression' not in dax_measures.columns:
                 return "No DAX expressions found."
             dax_measures['Expression'] = dax_measures['Expression'].str.replace('\n', '', regex=False)
-            return dax_measures[['Expression']]
+            return dax_measures[['Expression']].head(n)
         except Exception as e:
             return f"Error during DAX extraction: {e}"
 
@@ -96,15 +96,14 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
         elif uploaded_file:
             with open("temp_file.pbix", "wb") as f:
                 f.write(uploaded_file.getbuffer())
-            dax_expressions = extract_all_dax_expressions("temp_file.pbix")
+            dax_expressions = extract_n_dax_expressions("temp_file.pbix", num_expressions)
 
             if isinstance(dax_expressions, pd.DataFrame) and not dax_expressions.empty:
                 st.write("DAX Expressions Table:")
                 st.table(dax_expressions)
 
-                selected_dax_expressions = dax_expressions['Expression'].head(num_expressions)
                 tableau_calculated_fields = []
-                for i, dax_expression in enumerate(selected_dax_expressions, 1):
+                for i, dax_expression in enumerate(dax_expressions['Expression'], 1):
                     tableau_calculated_field = convert_dax_to_tableau(dax_expression)
                     tableau_calculated_fields.append({
                         "DAX Expression": dax_expression,
