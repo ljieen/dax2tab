@@ -155,11 +155,11 @@ with st.expander("🔗 3. Relationships Extraction"):
                     lambda x: 'Left join at physical layer or M:1 at logical layer' if x == 'M:1' else 'N/A'
                 )
                 
-                # Remove all columns after 'CrossFilteringBehaviour' except 'Suggested Joins'
+                # Drop all columns after 'CrossFilteringBehaviour' except 'Suggested Joins'
                 if 'CrossFilteringBehaviour' in active_relationships.columns:
                     crossfilter_index = active_relationships.columns.get_loc('CrossFilteringBehaviour')
                     cols_to_keep = list(active_relationships.columns[:crossfilter_index + 1]) + ['Suggested Joins']
-                    active_relationships = active_relationships[cols_to_keep]
+                    active_relationships = active_relationships.loc[:, cols_to_keep]  # Correct slicing
                 
                 st.write("Active Relationships with Suggested Joins:")
                 st.dataframe(active_relationships)
@@ -167,6 +167,7 @@ with st.expander("🔗 3. Relationships Extraction"):
                 st.write(relationships)
         else:
             st.warning("Please upload a PBIX file to proceed.")
+
 
 
 # Block for Q&A Section with ChatGPT
