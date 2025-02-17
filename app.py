@@ -141,6 +141,29 @@ with st.expander("🔗 3. Relationships Extraction"):
         except Exception as e:
             return f"Error during relationships extraction: {e}"
 
+    # Function to generate SQL LEFT JOIN scripts from the relationships table
+    def generate_sql_scripts_from_relationships(df):
+        sql_scripts = []
+        current_from_table = None
+        current_script = ""
+
+        for _, row in df.iterrows():
+            if row['FromTableName'] != current_from_table:
+                # Start a new SQL script if the FromTableName changes
+                if current_script:
+                    sql_scripts.append(current_script)
+                current_from_table = row['FromTableName']
+                current_script = f"FROM {current_from_table} a"
+
+            # Append the LEFT JOIN to the current script
+            current_script += f" LEFT JOIN {row['ToTableName']} b ON a.{row['FromColumnName']} = b.{row['ToColumnName']}"
+
+        # Append the last script after the loop ends
+        if current_script:
+            sql_scripts.append(current_script)
+
+        return sql_scripts
+
     if st.button("Extract Relationships"):
         if uploaded_file:
             with open("temp_file.pbix", "wb") as f:
@@ -155,19 +178,22 @@ with st.expander("🔗 3. Relationships Extraction"):
                     lambda x: 'Left join at physical layer or M:1 at logical layer' if x == 'M:1' else 'N/A'
                 )
                 
-                # Drop all columns after 'CrossFilteringBehavior' except 'Suggested Joins'
-                if 'CrossFilteringBehavior' in active_relationships.columns:
-                    crossfilter_index = active_relationships.columns.get_loc('CrossFilteringBehavior')
+                # Drop all columns after 'CrossFilteringBehaviour' except 'Suggested Joins'
+                if 'CrossFilteringBehaviour' in active_relationships.columns:
+                    crossfilter_index = active_relationships.columns.get_loc('CrossFilteringBehaviour')
                     cols_to_keep = list(active_relationships.columns[:crossfilter_index + 1]) + ['Suggested Joins']
-                    active_relationships = active_relationships.loc[:, cols_to_keep]  # Correct slicing
+                    active_relationships = active_relationships.loc[:, cols_to_keep]
+
+                # Generate SQL scripts directly from relationships table
+                sql_scripts = generate_sql_scripts_from_relationships(active_relationships)
+                active_relationships['SQL Script'] = sql_scripts
                 
-                st.write("Active Relationships with Suggested Joins:")
+                st.write("Active Relationships with Suggested Joins and SQL Scripts:")
                 st.dataframe(active_relationships)
             else:
                 st.write(relationships)
         else:
             st.warning("Please upload a PBIX file to proceed.")
-
 
 
 # Block for Q&A Section with ChatGPT
