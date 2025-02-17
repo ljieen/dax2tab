@@ -60,7 +60,9 @@ with st.expander("🔍 1. Datasource Setup"):
 # Other sections remain the same...
 # Block for Extracting and Converting DAX Expressions
 with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
-    st.write("Extract the first five DAX expressions from your Power BI file and convert them into Tableau-compatible calculated fields without including table names.")
+    st.write("Extract and convert DAX expressions from your Power BI file to Tableau-compatible calculated fields without including table names.")
+
+    num_expressions = st.number_input("Enter the number of DAX expressions to extract and convert:", min_value=1, value=5, step=1)
 
     def extract_all_dax_expressions(file_path):
         try:
@@ -84,11 +86,11 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
                     ],
                     max_tokens=300
                 )
-            return response.choices[0].message['content'].strip()
+                return response.choices[0].message.get('content', '').strip()
         except Exception as e:
             return f"Error during conversion: {e}"
 
-    if st.button("Extract and Convert First 5 DAX Expressions to Tableau Calculated Fields"):
+    if st.button(f"Extract and Convert {num_expressions} DAX Expressions to Tableau Calculated Fields"):
         if not openai.api_key:
             st.error("OpenAI API key is not configured.")
         elif uploaded_file:
@@ -100,9 +102,9 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
                 st.write("DAX Expressions Table:")
                 st.table(dax_expressions)
 
-                first_five_dax_expressions = dax_expressions['Expression'].head(5)
+                selected_dax_expressions = dax_expressions['Expression'].head(num_expressions)
                 tableau_calculated_fields = []
-                for i, dax_expression in enumerate(first_five_dax_expressions, 1):
+                for i, dax_expression in enumerate(selected_dax_expressions, 1):
                     tableau_calculated_field = convert_dax_to_tableau(dax_expression)
                     tableau_calculated_fields.append({
                         "DAX Expression": dax_expression,
@@ -115,11 +117,11 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
                     st.write("**Tableau Calculated Field:**", conversion["Tableau Calculated Field"])
                     st.write("---")
 
-                # Q&A section for users to ask questions about the conversions
                 st.subheader("💬 Ask Questions About the Conversions")
                 selected_conversion = st.selectbox("Select a conversion to ask about:", options=range(1, len(tableau_calculated_fields) + 1), format_func=lambda x: f"Conversion {x}")
-                user_question = st.text_area("Ask a question or request a refinement for the selected conversion:")
-                if user_question:
+                user_question = st.text_input("Ask a question or request a refinement for the selected conversion:", on_change=None)
+
+                if st.session_state.get('input_submitted'):
                     with st.spinner("Processing your question..."):
                         try:
                             selected_conv = tableau_calculated_fields[selected_conversion - 1]
@@ -129,20 +131,25 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
                                 {"role": "user", "content": user_question}
                             ]
                             response = openai.ChatCompletion.create(model="gpt-4", messages=messages, max_tokens=500)
-                            answer = response.choices[0].message['content'].strip()
-                            st.write("**Response:**")
-                            st.write(answer)
+                            if response.choices:
+                                answer = response.choices[0].message.get('content', '').strip()
+                                st.write("**Response:**")
+                                st.write(answer)
+                            else:
+                                st.error("No response received from OpenAI.")
                         except Exception as e:
                             st.error(f"Error during processing: {e}")
+
+                if user_question and st.session_state.get('input_submitted') is None:
+                    st.session_state['input_submitted'] = True
+                    st.experimental_rerun()
+
             else:
                 st.write(dax_expressions if isinstance(dax_expressions, str) else "No DAX expressions found.")
         else:
             st.warning("Please upload a PBIX file to proceed.")
-##relationship block
 
-import streamlit as st
-import pandas as pd
-from pbixray import PBIXRay  # Assuming PBIXRay is the library used to extract relationships
+##relationship block
 
 with st.expander("🔗 3. Relationships Extraction"):
     st.write("Extract relationships from your Power BI data model to help you maintain data integrity and relationships in Tableau.")
