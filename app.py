@@ -155,9 +155,9 @@ with st.expander("🔗 3. Relationships Extraction"):
                     lambda x: 'Left join at physical layer or M:1 at logical layer' if x == 'M:1' else 'N/A'
                 )
                 
-                # Drop all columns after 'CrossFilteringBehaviour' except 'Suggested Joins'
-                if 'CrossFilteringBehaviour' in active_relationships.columns:
-                    crossfilter_index = active_relationships.columns.get_loc('CrossFilteringBehaviour')
+                # Drop all columns after 'CrossFilteringBehavior' except 'Suggested Joins'
+                if 'CrossFilteringBehavior' in active_relationships.columns:
+                    crossfilter_index = active_relationships.columns.get_loc('CrossFilteringBehavior')
                     cols_to_keep = list(active_relationships.columns[:crossfilter_index + 1]) + ['Suggested Joins']
                     active_relationships = active_relationships.loc[:, cols_to_keep]  # Correct slicing
                 
