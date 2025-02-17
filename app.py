@@ -150,7 +150,7 @@ with st.expander("🔗 3. Relationships Extraction"):
                 
                 # Add Suggested Joins column based on Cardinality
                 active_relationships['Suggested Joins'] = active_relationships['Cardinality'].apply(
-                    lambda x: 'Left join at physical layer or M:1 at logical layer' if x == 'M:1' else 'N/A'
+                    lambda x: 'Left Join at Physical Layer or M:1 at logical layer' if x == 'M:1' else 'N/A'
                 )
                 
                 st.write("Active Relationships with Suggested Joins:")
