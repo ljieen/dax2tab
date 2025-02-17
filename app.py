@@ -127,6 +127,10 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
             st.warning("Please upload a PBIX file to proceed.")
 
 ##relationship block
+import streamlit as st
+import pandas as pd
+from pbixray import PBIXRay  # Assuming PBIXRay is the library used to extract relationships
+
 with st.expander("🔗 3. Relationships Extraction"):
     st.write("Extract relationships from your Power BI data model to help you maintain data integrity and relationships in Tableau.")
 
@@ -149,18 +153,11 @@ with st.expander("🔗 3. Relationships Extraction"):
 
         for _, row in df.iterrows():
             if row['FromTableName'] != current_from_table:
-                # Start a new SQL script if the FromTableName changes
-                if current_script:
-                    sql_scripts.append(current_script)
                 current_from_table = row['FromTableName']
                 current_script = f"FROM {current_from_table} a"
 
-            # Append the LEFT JOIN to the current script
             current_script += f" LEFT JOIN {row['ToTableName']} b ON a.{row['FromColumnName']} = b.{row['ToColumnName']}"
-
-        # Append the last script after the loop ends
-        if current_script:
-            sql_scripts.append(current_script)
+            sql_scripts.append(current_script)  # Append the current state for each row
 
         return sql_scripts
 
@@ -186,6 +183,8 @@ with st.expander("🔗 3. Relationships Extraction"):
 
                 # Generate SQL scripts directly from relationships table
                 sql_scripts = generate_sql_scripts_from_relationships(active_relationships)
+                
+                # Assign the SQL scripts to each row
                 active_relationships['SQL Script'] = sql_scripts
                 
                 st.write("Active Relationships with Suggested Joins and SQL Scripts:")
@@ -194,6 +193,7 @@ with st.expander("🔗 3. Relationships Extraction"):
                 st.write(relationships)
         else:
             st.warning("Please upload a PBIX file to proceed.")
+
 
 
 # Block for Q&A Section with ChatGPT
