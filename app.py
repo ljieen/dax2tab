@@ -60,9 +60,14 @@ with st.expander("🔍 1. Datasource Setup"):
 # Other sections remain the same...
 # Block for Extracting and Converting DAX Expressions
 with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
-    def extract_dax_expressions(file_path, limit):
+    def extract_dax_expressions_from_uploaded_file(limit):
         try:
-            model = PBIXRay(file_path)
+            uploaded_file = st.session_state.get('uploaded_file')
+            if not uploaded_file:
+                return "No PBIX file uploaded."
+            with open("temp_file.pbix", "wb") as f:
+                f.write(uploaded_file.getbuffer())
+            model = PBIXRay("temp_file.pbix")
             dax_measures = model.dax_measures
             if dax_measures.empty or 'Expression' not in dax_measures.columns:
                 return "No DAX expressions found."
@@ -74,30 +79,18 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
     if 'messages' not in st.session_state:
         st.session_state.messages = []
 
-    uploaded_file = st.file_uploader("Upload your PBIX file", type=["pbix"])
+    if 'uploaded_file' not in st.session_state:
+        st.session_state.uploaded_file = st.file_uploader("Upload your PBIX file", type=["pbix"])
+
     num_expressions = st.number_input("Number of DAX expressions to extract:", min_value=1, max_value=100, value=5)
 
-    if st.button("Extract and Convert DAX Expressions"):
-        if uploaded_file:
-            with open("temp_file.pbix", "wb") as f:
-                f.write(uploaded_file.getbuffer())
-            dax_expressions = extract_dax_expressions("temp_file.pbix", num_expressions)
+    if st.session_state.uploaded_file:
+        dax_expressions = extract_dax_expressions_from_uploaded_file(num_expressions)
+        if isinstance(dax_expressions, pd.DataFrame):
+            st.session_state.dax_expressions = dax_expressions['Expression'].tolist()
+            st.write("### Extracted DAX Expressions")
+            st.table(dax_expressions)
 
-            if isinstance(dax_expressions, pd.DataFrame):
-                st.session_state.dax_expressions = dax_expressions['Expression'].tolist()
-                st.session_state.messages.append({"role": "assistant", "content": "DAX expressions extracted. Please ask me to convert any specific one, or all!"})
-            else:
-                st.error(dax_expressions)
-        else:
-            st.error("Please upload a PBIX file.")
-
-    for msg in st.session_state.messages:
-        st.chat_message(msg["role"]).write(msg["content"])
-
-    if prompt := st.chat_input("Ask me to convert DAX expressions, refine outputs, or explain!"):
-        st.session_state.messages.append({"role": "user", "content": prompt})
-
-        if "convert all" in prompt.lower():
             outputs = []
             for expr in st.session_state.dax_expressions:
                 response = openai.ChatCompletion.create(
@@ -108,19 +101,32 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
                     ]
                 )
                 outputs.append(response.choices[0].message['content'])
-            reply = "Here are all conversions:\n\n" + "\n\n".join(outputs)
-        else:
-            response = openai.ChatCompletion.create(
-                model="gpt-4",
-                messages=[
-                    {"role": "system", "content": "You convert DAX to Tableau calculated fields conversationally."},
-                    {"role": "user", "content": prompt}
-                ]
-            )
-            reply = response.choices[0].message['content']
+            st.session_state.conversions = outputs
 
+            st.write("### Converted Tableau Calculated Fields")
+            for i, output in enumerate(outputs, 1):
+                st.write(f"**DAX Expression {i}:** {st.session_state.dax_expressions[i-1]}")
+                st.write(f"**Tableau Calculated Field {i}:** {output}")
+                st.write("---")
+
+            st.session_state.messages.append({"role": "assistant", "content": "DAX expressions extracted and converted. Now you can ask me to refine or explain any conversion!"})
+
+    for msg in st.session_state.messages:
+        st.chat_message(msg["role"]).write(msg["content"])
+
+    if prompt := st.chat_input("Ask me to refine conversions, explain DAX, or anything else!"):
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You convert DAX to Tableau calculated fields conversationally."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+        reply = response.choices[0].message['content']
         st.session_state.messages.append({"role": "assistant", "content": reply})
         st.chat_message("assistant").write(reply)
+
 
 ##relationship block
 
