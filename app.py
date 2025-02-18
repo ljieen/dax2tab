@@ -77,7 +77,9 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
     if 'pbix_file_path' in st.session_state:
         num_expressions = st.number_input("Number of DAX expressions to extract:", min_value=1, max_value=100, value=5)
 
-        if st.button("Extract and Display DAX Expressions"):
+        extract_button = st.button("Extract and Display DAX Expressions")
+
+        if extract_button:
             dax_expressions = extract_dax_expressions_from_schema(st.session_state.pbix_file_path, num_expressions)
             if isinstance(dax_expressions, pd.DataFrame):
                 st.session_state.dax_expressions = dax_expressions['Expression'].tolist()
@@ -85,8 +87,9 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
                 st.table(dax_expressions)
 
         if 'dax_expressions' in st.session_state and st.session_state.dax_expressions:
-            st.write("Click below to convert the extracted DAX expressions to Tableau calculated fields.")
-            if st.button("Convert DAX to Tableau Calculated Fields"):
+            convert_button = st.button("Convert DAX to Tableau Calculated Fields")
+
+            if convert_button:
                 outputs = []
                 for expr in st.session_state.dax_expressions:
                     response = openai.ChatCompletion.create(
@@ -110,7 +113,8 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
     for msg in st.session_state.messages:
         st.chat_message(msg["role"]).write(msg["content"])
 
-    if prompt := st.chat_input("Ask me to refine conversions, explain DAX, or anything else!"):
+    prompt = st.chat_input("Ask me to refine conversions, explain DAX, or anything else!")
+    if prompt:
         st.session_state.messages.append({"role": "user", "content": prompt})
         response = openai.ChatCompletion.create(
             model="gpt-4",
