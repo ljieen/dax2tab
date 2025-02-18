@@ -59,6 +59,8 @@ with st.expander("🔍 1. Datasource Setup"):
 
 # Other sections remain the same...
 # Block for Extracting and Converting DAX Expressions
+
+
 with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
     def extract_dax_expressions_from_schema(file_path, limit):
         try:
@@ -83,25 +85,27 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
             st.write("### Extracted DAX Expressions")
             st.table(dax_expressions)
 
-            outputs = []
-            for expr in st.session_state.dax_expressions:
-                response = openai.ChatCompletion.create(
-                    model="gpt-4",
-                    messages=[
-                        {"role": "system", "content": "You convert DAX to Tableau calculated fields conversationally."},
-                        {"role": "user", "content": f"Convert this DAX to Tableau: {expr}"}
-                    ]
-                )
-                outputs.append(response.choices[0].message['content'])
-            st.session_state.conversions = outputs
+            st.write("Click below to convert the extracted DAX expressions to Tableau calculated fields.")
+            if st.button("Convert DAX to Tableau Calculated Fields"):
+                outputs = []
+                for expr in st.session_state.dax_expressions:
+                    response = openai.ChatCompletion.create(
+                        model="gpt-4",
+                        messages=[
+                            {"role": "system", "content": "You convert DAX to Tableau calculated fields conversationally."},
+                            {"role": "user", "content": f"Convert this DAX to Tableau: {expr}"}
+                        ]
+                    )
+                    outputs.append(response.choices[0].message['content'])
+                st.session_state.conversions = outputs
 
-            st.write("### Converted Tableau Calculated Fields")
-            for i, output in enumerate(outputs, 1):
-                st.write(f"**DAX Expression {i}:** {st.session_state.dax_expressions[i-1]}")
-                st.write(f"**Tableau Calculated Field {i}:** {output}")
-                st.write("---")
+                st.write("### Converted Tableau Calculated Fields")
+                for i, output in enumerate(outputs, 1):
+                    st.write(f"**DAX Expression {i}:** {st.session_state.dax_expressions[i-1]}")
+                    st.write(f"**Tableau Calculated Field {i}:** {output}")
+                    st.write("---")
 
-            st.session_state.messages.append({"role": "assistant", "content": "DAX expressions extracted and converted. Now you can ask me to refine or explain any conversion!"})
+                st.session_state.messages.append({"role": "assistant", "content": "DAX expressions extracted and converted. Now you can ask me to refine or explain any conversion!"})
 
     for msg in st.session_state.messages:
         st.chat_message(msg["role"]).write(msg["content"])
