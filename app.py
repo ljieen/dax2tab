@@ -60,14 +60,9 @@ with st.expander("🔍 1. Datasource Setup"):
 # Other sections remain the same...
 # Block for Extracting and Converting DAX Expressions
 with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
-    def extract_dax_expressions_from_uploaded_file(limit):
+    def extract_dax_expressions_from_schema(file_path, limit):
         try:
-            uploaded_file = st.session_state.get('uploaded_file')
-            if not uploaded_file:
-                return "No PBIX file uploaded."
-            with open("temp_file.pbix", "wb") as f:
-                f.write(uploaded_file.getbuffer())
-            model = PBIXRay("temp_file.pbix")
+            model = PBIXRay(file_path)
             dax_measures = model.dax_measures
             if dax_measures.empty or 'Expression' not in dax_measures.columns:
                 return "No DAX expressions found."
@@ -79,13 +74,10 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
     if 'messages' not in st.session_state:
         st.session_state.messages = []
 
-    if 'uploaded_file' not in st.session_state:
-        st.session_state.uploaded_file = st.file_uploader("Upload your PBIX file", type=["pbix"])
+    if 'pbix_file_path' in st.session_state:
+        num_expressions = st.number_input("Number of DAX expressions to extract:", min_value=1, max_value=100, value=5)
 
-    num_expressions = st.number_input("Number of DAX expressions to extract:", min_value=1, max_value=100, value=5)
-
-    if st.session_state.uploaded_file:
-        dax_expressions = extract_dax_expressions_from_uploaded_file(num_expressions)
+        dax_expressions = extract_dax_expressions_from_schema(st.session_state.pbix_file_path, num_expressions)
         if isinstance(dax_expressions, pd.DataFrame):
             st.session_state.dax_expressions = dax_expressions['Expression'].tolist()
             st.write("### Extracted DAX Expressions")
@@ -126,6 +118,7 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
         reply = response.choices[0].message['content']
         st.session_state.messages.append({"role": "assistant", "content": reply})
         st.chat_message("assistant").write(reply)
+
 
 
 ##relationship block
