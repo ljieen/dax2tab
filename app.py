@@ -60,7 +60,7 @@ with st.expander("🔍 1. Datasource Setup"):
 # Other sections remain the same...
 # Block for Extracting and Converting DAX Expressions
 with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
-    st.write("Extract the first five DAX expressions from your Power BI file and convert them into Tableau-compatible calculated fields for seamless migration.")
+    st.write("Extract and convert DAX expressions from your Power BI file into Tableau-compatible calculated fields.")
 
     # Function to extract all DAX expressions from a PBIX file
     def extract_all_dax_expressions(file_path):
@@ -90,41 +90,74 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
         except Exception as e:
             return f"Error during conversion: {e}"
 
-    # Extract and Convert the First 5 DAX Expressions
-    if st.button("Extract and Convert First 5 DAX Expressions to Tableau Calculated Fields"):
-        if not openai.api_key:
-            st.error("OpenAI API key is not configured.")
-        elif uploaded_file:
-            with open("temp_file.pbix", "wb") as f:
-                f.write(uploaded_file.getbuffer())
-            dax_expressions = extract_all_dax_expressions("temp_file.pbix")
-            
-            if isinstance(dax_expressions, pd.DataFrame) and not dax_expressions.empty:
-                st.write("DAX Expressions Table:")
-                st.table(dax_expressions)
+    # Ensure PBIX file is uploaded
+    if "pbix_file_path" not in st.session_state:
+        st.warning("Please upload a PBIX file in **📂 Datasource Setup** before extracting DAX expressions.")
+    else:
+        # Let user choose how many DAX expressions to extract
+        num_expressions = st.number_input("🔢 Number of DAX expressions to extract:", 
+                                          min_value=1, max_value=100, value=5)
 
-                # Limit to the first five expressions
-                first_five_dax_expressions = dax_expressions['Expression'].head(5)
+        extract_button = st.button("🚀 Extract DAX Expressions")
 
-                # Convert each of the first five DAX expressions to Tableau calculated fields
-                tableau_calculated_fields = []
-                for i, dax_expression in enumerate(first_five_dax_expressions, 1):
-                    tableau_calculated_field = convert_dax_to_tableau(dax_expression)
-                    tableau_calculated_fields.append({
-                        "DAX Expression": dax_expression,
-                        "Tableau Calculated Field": tableau_calculated_field
-                    })
+        if extract_button:
+            st.session_state.dax_expressions = extract_all_dax_expressions(st.session_state.pbix_file_path)
 
-                # Display converted expressions
-                for i, conversion in enumerate(tableau_calculated_fields, 1):
-                    st.write(f"### Conversion {i}")
-                    st.write("**DAX Expression:**", conversion["DAX Expression"])
-                    st.write("**Tableau Calculated Field:**", conversion["Tableau Calculated Field"])
-                    st.write("---")
+            if isinstance(st.session_state.dax_expressions, pd.DataFrame) and not st.session_state.dax_expressions.empty:
+                st.session_state.dax_expressions = st.session_state.dax_expressions['Expression'].tolist()
+                st.write("### 📌 Extracted DAX Expressions")
+                st.table(pd.DataFrame(st.session_state.dax_expressions, columns=["DAX Expression"]))
             else:
-                st.write(dax_expressions if isinstance(dax_expressions, str) else "No DAX expressions found.")
-        else:
-            st.warning("Please upload a PBIX file to proceed.")
+                st.write(st.session_state.dax_expressions)  # Show error if extraction fails
+
+    # Ensure expressions are extracted before conversion
+    if "dax_expressions" in st.session_state and st.session_state.dax_expressions:
+        num_conversions = st.number_input("📊 Number of Tableau Calculated Fields to convert:", 
+                                          min_value=1, 
+                                          max_value=len(st.session_state.dax_expressions), 
+                                          value=len(st.session_state.dax_expressions))
+
+        convert_button = st.button("🔄 Convert DAX to Tableau")
+
+        if convert_button:
+            tableau_calculated_fields = []
+            for dax_expression in st.session_state.dax_expressions[:num_conversions]:  
+                tableau_calculated_field = convert_dax_to_tableau(dax_expression)
+                tableau_calculated_fields.append({
+                    "DAX Expression": dax_expression,
+                    "Tableau Calculated Field": tableau_calculated_field
+                })
+
+            # Store conversions in session state
+            st.session_state.conversions = tableau_calculated_fields
+            st.session_state.chatbot_enabled = True  # Enable chatbot
+
+            st.write("### 🎯 Converted Tableau Calculated Fields")
+            for i, conversion in enumerate(tableau_calculated_fields, 1):
+                st.write(f"**DAX Expression {i}:** {conversion['DAX Expression']}")
+                st.write(f"**Tableau Calculated Field {i}:** {conversion['Tableau Calculated Field']}")
+                st.write("---")
+
+    # Enable chatbot **only after conversions are displayed**
+    if st.session_state.get("chatbot_enabled", False):
+        st.write("### 💬 Chatbot: Refine or Explain Conversions")
+        
+        for msg in st.session_state.get("messages", []):
+            st.chat_message(msg["role"]).write(msg["content"])
+
+        prompt = st.chat_input("Ask me to refine conversions, explain DAX, or anything else!")
+        if prompt:
+            st.session_state.messages.append({"role": "user", "content": prompt})
+            response = openai.ChatCompletion.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": "You convert DAX to Tableau calculated fields conversationally."},
+                    {"role": "user", "content": prompt}
+                ]
+            )
+            reply = response.choices[0].message['content']
+            st.session_state.messages.append({"role": "assistant", "content": reply})
+            st.chat_message("assistant").write(reply)
 
 ##relationship block
 
