@@ -73,6 +73,10 @@ with st.expander("🔍 1. Datasource Setup"):
 with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
     st.write("Extract and convert DAX expressions from your Power BI file into Tableau-compatible calculated fields.")
 
+    # Initialize chatbot messages session state if not set
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+
     # Function to extract all DAX expressions from a PBIX file
     def extract_all_dax_expressions(file_path):
         try:
@@ -158,11 +162,12 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
     if st.session_state.get("chatbot_enabled", False):
         st.write("### 💬 Chatbot: Refine or Explain Conversions")
         
-        for msg in st.session_state.get("messages", []):
+        for msg in st.session_state.messages:
             st.chat_message(msg["role"]).write(msg["content"])
 
         prompt = st.chat_input("Ask me to refine conversions, explain DAX, or anything else!")
         if prompt:
+            # Ensure messages exist before appending
             st.session_state.messages.append({"role": "user", "content": prompt})
             response = openai.ChatCompletion.create(
                 model="gpt-4",
@@ -174,6 +179,7 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
             reply = response.choices[0].message['content']
             st.session_state.messages.append({"role": "assistant", "content": reply})
             st.chat_message("assistant").write(reply)
+
 
 ##relationship block
 
