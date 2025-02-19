@@ -109,14 +109,19 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
         extract_button = st.button("🚀 Extract DAX Expressions")
 
         if extract_button:
-            st.session_state.dax_expressions = extract_all_dax_expressions(st.session_state.pbix_file_path)
+            extracted_dax_df = extract_all_dax_expressions(st.session_state.pbix_file_path)
 
-            if isinstance(st.session_state.dax_expressions, pd.DataFrame) and not st.session_state.dax_expressions.empty:
-                st.session_state.dax_expressions = st.session_state.dax_expressions['Expression'].tolist()
+            if isinstance(extracted_dax_df, pd.DataFrame) and not extracted_dax_df.empty:
+                st.session_state.dax_expressions = extracted_dax_df['Expression'].tolist()[:num_expressions]
                 st.write("### 📌 Extracted DAX Expressions")
-                st.table(pd.DataFrame(st.session_state.dax_expressions, columns=["DAX Expression"]))
+                
+                # Show only the selected number of expressions
+                for i, expr in enumerate(st.session_state.dax_expressions, 1):
+                    st.write(f"**DAX Expression {i}:** {expr}")
+                    st.write("---")
+
             else:
-                st.write(st.session_state.dax_expressions)  # Show error if extraction fails
+                st.write(extracted_dax_df)  # Show error if extraction fails
 
     else:
         st.warning("⚠️ Please upload a PBIX file in the sidebar before extracting DAX expressions.")
