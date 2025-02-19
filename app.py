@@ -59,7 +59,9 @@ with st.expander("🔍 1. Datasource Setup"):
 
 # Other sections remain the same...
 # Block for Extracting and Converting DAX Expressions
-with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
+with st.expander("🔄 2. DAX Expression Extraction and Conversion", expanded=True):  
+    st.write("Extract and convert your Power BI DAX expressions into Tableau calculated fields.")
+
     def extract_dax_expressions_from_schema(file_path, limit):
         try:
             model = PBIXRay(file_path)
@@ -71,50 +73,66 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
         except Exception as e:
             return f"Error during DAX extraction: {e}"
 
+    # Ensure chatbot messages persist
     if 'messages' not in st.session_state:
         st.session_state.messages = []
 
-    if 'pbix_file_path' in st.session_state:
-        num_expressions = st.number_input("Number of DAX expressions to extract:", min_value=1, max_value=100, value=5)
+    # Ensure the PBIX file is uploaded and processed
+    if 'pbix_file_path' not in st.session_state:
+        st.warning("Please upload a PBIX file in **📂 Datasource Setup** before extracting DAX expressions.")
+    else:
+        # Let the user choose how many DAX expressions to extract
+        num_expressions = st.number_input("🔢 Number of DAX expressions to extract:", 
+                                          min_value=1, max_value=100, value=5)
 
-        extract_button = st.button("Extract and Display DAX Expressions")
+        extract_button = st.button("🚀 Extract DAX Expressions")
 
         if extract_button:
-            dax_expressions = extract_dax_expressions_from_schema(st.session_state.pbix_file_path, num_expressions)
-            if isinstance(dax_expressions, pd.DataFrame):
-                st.session_state.dax_expressions = dax_expressions['Expression'].tolist()
-                st.write("### Extracted DAX Expressions")
-                st.table(dax_expressions)
+            st.session_state.dax_expressions = extract_dax_expressions_from_schema(
+                st.session_state.pbix_file_path, num_expressions
+            )
 
-        if 'dax_expressions' in st.session_state and st.session_state.dax_expressions:
-            num_conversions = st.number_input("Number of Tableau Calculated Fields to display:", 
-                                              min_value=1, max_value=len(st.session_state.dax_expressions), value=len(st.session_state.dax_expressions))
+            if isinstance(st.session_state.dax_expressions, pd.DataFrame):
+                st.session_state.dax_expressions = st.session_state.dax_expressions['Expression'].tolist()
+                st.write("### 📌 Extracted DAX Expressions")
+                st.table(pd.DataFrame(st.session_state.dax_expressions, columns=["DAX Expression"]))
+            else:
+                st.write(st.session_state.dax_expressions)  # Show error if extraction fails
 
-            convert_button = st.button("Convert DAX to Tableau Calculated Fields")
+    # Ensure expressions are extracted before conversion
+    if 'dax_expressions' in st.session_state and st.session_state.dax_expressions:
+        num_conversions = st.number_input("📊 Number of Tableau Calculated Fields to display:", 
+                                          min_value=1, 
+                                          max_value=len(st.session_state.dax_expressions), 
+                                          value=len(st.session_state.dax_expressions))
 
-            if convert_button:
-                outputs = []
-                for expr in st.session_state.dax_expressions[:num_conversions]:  # Limit based on user input
-                    response = openai.ChatCompletion.create(
-                        model="gpt-4",
-                        messages=[
-                            {"role": "system", "content": "You convert DAX to Tableau calculated fields conversationally."},
-                            {"role": "user", "content": f"Convert this DAX to Tableau: {expr}"}
-                        ]
-                    )
-                    outputs.append(response.choices[0].message['content'])
-                st.session_state.conversions = outputs
+        convert_button = st.button("🔄 Convert DAX to Tableau")
 
-                st.write("### Converted Tableau Calculated Fields")
-                for i, output in enumerate(outputs, 1):
-                    st.write(f"**DAX Expression {i}:** {st.session_state.dax_expressions[i-1]}")
-                    st.write(f"**Tableau Calculated Field {i}:** {output}")
-                    st.write("---")
+        if convert_button:
+            outputs = []
+            for expr in st.session_state.dax_expressions[:num_conversions]:  
+                response = openai.ChatCompletion.create(
+                    model="gpt-4",
+                    messages=[
+                        {"role": "system", "content": "You convert DAX to Tableau calculated fields conversationally."},
+                        {"role": "user", "content": f"Convert this DAX to Tableau: {expr}"}
+                    ]
+                )
+                outputs.append(response.choices[0].message['content'])
 
-                st.session_state.chatbot_enabled = True  # Enable chatbot
+            st.session_state.conversions = outputs
+            st.session_state.chatbot_enabled = True  # Enable chatbot
 
-    if st.session_state.get("chatbot_enabled", False):  # Check if chatbot should be enabled
-        st.write("### Chatbot: Refine or Explain Conversions")
+            st.write("### 🎯 Converted Tableau Calculated Fields")
+            for i, output in enumerate(outputs, 1):
+                st.write(f"**DAX Expression {i}:** {st.session_state.dax_expressions[i-1]}")
+                st.write(f"**Tableau Calculated Field {i}:** {output}")
+                st.write("---")
+
+    # Enable chatbot **only after conversions are displayed**
+    if st.session_state.get("chatbot_enabled", False):
+        st.write("### 💬 Chatbot: Refine or Explain Conversions")
+        
         for msg in st.session_state.messages:
             st.chat_message(msg["role"]).write(msg["content"])
 
