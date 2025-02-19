@@ -11,10 +11,21 @@ st.title("✨ DAX2Tab: PowerBI to Tableau Conversion Assistant")
 st.write("Welcome! Let me help you convert your PowerBI reports to Tableau dashboards.")
 
 # Sidebar for uploading file
+# Sidebar for uploading file
 with st.sidebar:
     st.subheader("📂 Upload Your PBIX File")
     st.write("Upload your Power BI PBIX file to extract DAX expressions, schema, and relationships for conversion and analysis.")
+    
     uploaded_file = st.file_uploader("Choose a PBIX file", type="pbix")
+
+    if uploaded_file:
+        temp_path = "temp_file.pbix"
+        with open(temp_path, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+
+        # Store file path in session state
+        st.session_state.pbix_file_path = temp_path
+        st.success("✅ PBIX file uploaded successfully!")
 
 # Block for Datasource Setup
 # Function to extract schema from the PBIX file
@@ -90,11 +101,8 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
         except Exception as e:
             return f"Error during conversion: {e}"
 
-    # Ensure PBIX file is uploaded
-    if "pbix_file_path" not in st.session_state:
-        st.warning("Please upload a PBIX file in **📂 Datasource Setup** before extracting DAX expressions.")
-    else:
-        # Let user choose how many DAX expressions to extract
+    # Ensure PBIX file is uploaded and recognized
+    if "pbix_file_path" in st.session_state:
         num_expressions = st.number_input("🔢 Number of DAX expressions to extract:", 
                                           min_value=1, max_value=100, value=5)
 
@@ -109,6 +117,9 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
                 st.table(pd.DataFrame(st.session_state.dax_expressions, columns=["DAX Expression"]))
             else:
                 st.write(st.session_state.dax_expressions)  # Show error if extraction fails
+
+    else:
+        st.warning("⚠️ Please upload a PBIX file in the sidebar before extracting DAX expressions.")
 
     # Ensure expressions are extracted before conversion
     if "dax_expressions" in st.session_state and st.session_state.dax_expressions:
