@@ -87,11 +87,14 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
                 st.table(dax_expressions)
 
         if 'dax_expressions' in st.session_state and st.session_state.dax_expressions:
+            num_conversions = st.number_input("Number of Tableau Calculated Fields to display:", 
+                                              min_value=1, max_value=len(st.session_state.dax_expressions), value=len(st.session_state.dax_expressions))
+
             convert_button = st.button("Convert DAX to Tableau Calculated Fields")
 
             if convert_button:
                 outputs = []
-                for expr in st.session_state.dax_expressions:
+                for expr in st.session_state.dax_expressions[:num_conversions]:  # Limit based on user input
                     response = openai.ChatCompletion.create(
                         model="gpt-4",
                         messages=[
@@ -108,25 +111,26 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
                     st.write(f"**Tableau Calculated Field {i}:** {output}")
                     st.write("---")
 
-                st.session_state.messages.append({"role": "assistant", "content": "DAX expressions extracted and converted. Now you can ask me to refine or explain any conversion!"})
+                st.session_state.chatbot_enabled = True  # Enable chatbot
 
-    for msg in st.session_state.messages:
-        st.chat_message(msg["role"]).write(msg["content"])
+    if st.session_state.get("chatbot_enabled", False):  # Check if chatbot should be enabled
+        st.write("### Chatbot: Refine or Explain Conversions")
+        for msg in st.session_state.messages:
+            st.chat_message(msg["role"]).write(msg["content"])
 
-    prompt = st.chat_input("Ask me to refine conversions, explain DAX, or anything else!")
-    if prompt:
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=[
-                {"role": "system", "content": "You convert DAX to Tableau calculated fields conversationally."},
-                {"role": "user", "content": prompt}
-            ]
-        )
-        reply = response.choices[0].message['content']
-        st.session_state.messages.append({"role": "assistant", "content": reply})
-        st.chat_message("assistant").write(reply)
-
+        prompt = st.chat_input("Ask me to refine conversions, explain DAX, or anything else!")
+        if prompt:
+            st.session_state.messages.append({"role": "user", "content": prompt})
+            response = openai.ChatCompletion.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": "You convert DAX to Tableau calculated fields conversationally."},
+                    {"role": "user", "content": prompt}
+                ]
+            )
+            reply = response.choices[0].message['content']
+            st.session_state.messages.append({"role": "assistant", "content": reply})
+            st.chat_message("assistant").write(reply)
 
 ##relationship block
 
