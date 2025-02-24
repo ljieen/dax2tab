@@ -70,20 +70,45 @@ with st.expander("🔍 1. Datasource Setup"):
 
 # Other sections remain the same...
 # Block for Extracting and Converting DAX Expressions
-# Ensure session state is initialized
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-if "dax_expressions" not in st.session_state:
-    st.session_state.dax_expressions = []
-if "conversions" not in st.session_state:
-    st.session_state.conversions = []
-if "chatbot_enabled" not in st.session_state:
-    st.session_state.chatbot_enabled = False
+# Other sections remain the same...
+# Block for Extracting and Converting DAX Expressions
 
 with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
     st.write("Extract and convert DAX expressions from your Power BI file into Tableau-compatible calculated fields.")
 
-    # Ensure PBIX file is uploaded
+    # Initialize chatbot messages session state if not set
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+
+    # Function to extract all DAX expressions from a PBIX file
+    def extract_all_dax_expressions(file_path):
+        try:
+            model = PBIXRay(file_path)
+            dax_measures = model.dax_measures
+            if dax_measures.empty or 'Expression' not in dax_measures.columns:
+                return "No DAX expressions found."
+            dax_measures['Expression'] = dax_measures['Expression'].str.replace('\n', '', regex=False)
+            return dax_measures[['Expression']]
+        except Exception as e:
+            return f"Error during DAX extraction: {e}"
+
+    # Function to convert DAX to Tableau calculated field using OpenAI
+    def convert_dax_to_tableau(dax_expression):
+        try:
+            with st.spinner("Converting DAX to Tableau calculated field..."):
+                response = openai.ChatCompletion.create(
+                    model="gpt-4",
+                    messages=[
+                        {"role": "system", "content": "You are an assistant that converts DAX expressions to Tableau calculated fields."},
+                        {"role": "user", "content": f"Convert this DAX expression to Tableau calculated field: {dax_expression}"}
+                    ],
+                    max_tokens=300
+                )
+            return response.choices[0].message['content'].strip()
+        except Exception as e:
+            return f"Error during conversion: {e}"
+
+    # Ensure PBIX file is uploaded and recognized
     if "pbix_file_path" in st.session_state:
         num_expressions = st.number_input("🔢 Number of DAX expressions to extract:", 
                                           min_value=1, max_value=100, value=5)
@@ -95,63 +120,65 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
 
             if isinstance(extracted_dax_df, pd.DataFrame) and not extracted_dax_df.empty:
                 st.session_state.dax_expressions = extracted_dax_df['Expression'].tolist()[:num_expressions]
-                st.session_state.conversions = []  # Reset conversions when re-extracting
+                st.write("### 📌 Extracted DAX Expressions")
 
-        # Display extracted DAX expressions
-        if st.session_state.dax_expressions:
-            st.write("### 📌 Extracted DAX Expressions")
-            for i, expr in enumerate(st.session_state.dax_expressions, 1):
-                st.write(f"**DAX Expression {i}:** {expr}")
-                st.write("---")
-
-        # Ensure expressions are extracted before conversion
-        if st.session_state.dax_expressions:
-            num_conversions = st.number_input("📊 Number of Tableau Calculated Fields to convert:", 
-                                              min_value=1, 
-                                              max_value=len(st.session_state.dax_expressions), 
-                                              value=len(st.session_state.dax_expressions))
-
-            convert_button = st.button("🔄 Convert DAX to Tableau")
-
-            if convert_button:
-                tableau_calculated_fields = []
-                for dax_expression in st.session_state.dax_expressions[:num_conversions]:  
-                    tableau_calculated_field = convert_dax_to_tableau(dax_expression)
-                    tableau_calculated_fields.append({
-                        "DAX Expression": dax_expression,
-                        "Tableau Calculated Field": tableau_calculated_field
-                    })
-
-                # Store conversions in session state
-                st.session_state.conversions = tableau_calculated_fields
-                st.session_state.chatbot_enabled = True  # Enable chatbot
-
-        # Display converted Tableau Calculated Fields
-        if st.session_state.conversions:
-            st.write("### 🎯 Converted Tableau Calculated Fields")
-            for i, conversion in enumerate(st.session_state.conversions, 1):
-                st.write(f"**DAX Expression {i}:** {conversion['DAX Expression']}")
-                st.write(f"**Tableau Calculated Field {i}:** {conversion['Tableau Calculated Field']}")
-                st.write("---")
+                # Show only the selected number of expressions
+                for i, expr in enumerate(st.session_state.dax_expressions, 1):
+                    st.write(f"**DAX Expression {i}:** {expr}")
+                    st.write("---")
+            else:
+                st.write(extracted_dax_df)  # Show error if extraction fails
 
     else:
         st.warning("⚠️ Please upload a PBIX file in the sidebar before extracting DAX expressions.")
 
-    # Enable Chatbot **only after conversions are displayed**
-    if st.session_state.chatbot_enabled:
-        st.write("### 💬 Chatbot: Refine or Explain Conversions")
+    # Ensure expressions are extracted before conversion
+    if "dax_expressions" in st.session_state and st.session_state.dax_expressions:
+        num_conversions = st.number_input("📊 Number of Tableau Calculated Fields to convert:", 
+                                          min_value=1, 
+                                          max_value=len(st.session_state.dax_expressions), 
+                                          value=len(st.session_state.dax_expressions))
 
+        convert_button = st.button("🔄 Convert DAX to Tableau")
+
+        if convert_button:
+            tableau_calculated_fields = []
+            for dax_expression in st.session_state.dax_expressions[:num_conversions]:  
+                tableau_calculated_field = convert_dax_to_tableau(dax_expression)
+                tableau_calculated_fields.append({
+                    "DAX Expression": dax_expression,
+                    "Tableau Calculated Field": tableau_calculated_field
+                })
+
+            # Store conversions in session state
+            st.session_state.conversions = tableau_calculated_fields
+            st.session_state.chatbot_enabled = True  # Enable chatbot
+
+            st.write("### 🎯 Converted Tableau Calculated Fields")
+            for i, conversion in enumerate(tableau_calculated_fields, 1):
+                st.write(f"**DAX Expression {i}:** {conversion['DAX Expression']}")
+                st.write(f"**Tableau Calculated Field {i}:** {conversion['Tableau Calculated Field']}")
+                st.write("---")
+
+    # Enable Chatbot **only after conversions are displayed**
+    if st.session_state.get("chatbot_enabled", False):
+        st.write("### 💬 Chatbot: Refine or Explain Conversions")
+    
+        # Ensure messages session state exists
+        if "messages" not in st.session_state:
+            st.session_state.messages = []
+    
         # Display previous conversation (including conversions)
         for msg in st.session_state.messages:
             st.chat_message(msg["role"]).write(msg["content"])
-
+    
         # User input for chatbot
         prompt = st.chat_input("Ask me to refine conversions, explain DAX, or anything else!")
-
+    
         if prompt:
             # Append user message to session state before calling API
             st.session_state.messages.append({"role": "user", "content": prompt})
-
+    
             with st.spinner("Thinking..."):
                 try:
                     # Send full conversation history to OpenAI
@@ -161,14 +188,14 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
                             {"role": "system", "content": "You convert DAX to Tableau calculated fields conversationally."}
                         ] + st.session_state.messages  # Full conversation history
                     )
-
+    
                     # Get response and store in session state
                     reply = response.choices[0].message['content'].strip()
                     st.session_state.messages.append({"role": "assistant", "content": reply})
-
+    
                     # Display response
                     st.chat_message("assistant").write(reply)
-
+    
                 except Exception as e:
                     st.error(f"Error during chatbot processing: {e}")
 
