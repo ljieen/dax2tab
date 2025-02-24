@@ -70,8 +70,10 @@ with st.expander("🔍 1. Datasource Setup"):
 
 # Other sections remain the same...
 # Block for Extracting and Converting DAX Expressions
+# Other sections remain the same...
+# Block for Extracting and Converting DAX Expressions
 
-    with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
+with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
     st.write("Extract and convert DAX expressions from your Power BI file into Tableau-compatible calculated fields.")
 
     # Initialize chatbot messages session state if not set
@@ -119,12 +121,11 @@ with st.expander("🔍 1. Datasource Setup"):
             if isinstance(extracted_dax_df, pd.DataFrame) and not extracted_dax_df.empty:
                 st.session_state.dax_expressions = extracted_dax_df['Expression'].tolist()[:num_expressions]
                 st.write("### 📌 Extracted DAX Expressions")
-                
+
                 # Show only the selected number of expressions
                 for i, expr in enumerate(st.session_state.dax_expressions, 1):
                     st.write(f"**DAX Expression {i}:** {expr}")
                     st.write("---")
-
             else:
                 st.write(extracted_dax_df)  # Show error if extraction fails
 
@@ -198,7 +199,7 @@ with st.expander("🔍 1. Datasource Setup"):
                 except Exception as e:
                     st.error(f"Error during chatbot processing: {e}")
 
-
+   
 ##relationship block
 
 with st.expander("🔗 3. Relationships Extraction"):
