@@ -158,27 +158,44 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion"):
                 st.write(f"**Tableau Calculated Field {i}:** {conversion['Tableau Calculated Field']}")
                 st.write("---")
 
-    # Enable chatbot **only after conversions are displayed**
+    # Enable Chatbot **only after conversions are displayed**
     if st.session_state.get("chatbot_enabled", False):
         st.write("### 💬 Chatbot: Refine or Explain Conversions")
-        
+    
+        # Ensure messages session state exists
+        if "messages" not in st.session_state:
+            st.session_state.messages = []
+    
+        # Display previous conversation (including conversions)
         for msg in st.session_state.messages:
             st.chat_message(msg["role"]).write(msg["content"])
-
+    
+        # User input for chatbot
         prompt = st.chat_input("Ask me to refine conversions, explain DAX, or anything else!")
+    
         if prompt:
-            # Ensure messages exist before appending
+            # Append user message to session state before calling API
             st.session_state.messages.append({"role": "user", "content": prompt})
-            response = openai.ChatCompletion.create(
-                model="gpt-4",
-                messages=[
-                    {"role": "system", "content": "You convert DAX to Tableau calculated fields conversationally."},
-                    {"role": "user", "content": prompt}
-                ]
-            )
-            reply = response.choices[0].message['content']
-            st.session_state.messages.append({"role": "assistant", "content": reply})
-            st.chat_message("assistant").write(reply)
+    
+            with st.spinner("Thinking..."):
+                try:
+                    # Send full conversation history to OpenAI
+                    response = openai.ChatCompletion.create(
+                        model="gpt-4",
+                        messages=[
+                            {"role": "system", "content": "You convert DAX to Tableau calculated fields conversationally."}
+                        ] + st.session_state.messages  # Full conversation history
+                    )
+    
+                    # Get response and store in session state
+                    reply = response.choices[0].message['content'].strip()
+                    st.session_state.messages.append({"role": "assistant", "content": reply})
+    
+                    # Display response
+                    st.chat_message("assistant").write(reply)
+    
+                except Exception as e:
+                    st.error(f"Error during chatbot processing: {e}")
 
 
 ##relationship block
