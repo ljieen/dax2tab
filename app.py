@@ -55,7 +55,7 @@ with st.expander("🔍 1. Datasource Setup", expanded=True):
 
 # ✅ DAX Extraction & Conversion Section
 with st.expander("🔄 2. DAX Expression Extraction and Conversion", expanded=True):
-    st.write("Extract and convert DAX expressions from your Power BI file into Tableau-compatible calculated fields.")
+    st.write("Extract DAX expressions from your Power BI file. You can choose to extract all expressions or convert them into Tableau-compatible calculated fields.")
 
     def extract_all_dax_expressions(file_path):
         try:
@@ -83,7 +83,20 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion", expanded=Tr
         extracted_dax_df = extract_all_dax_expressions(st.session_state.pbix_file_path)
         if isinstance(extracted_dax_df, pd.DataFrame) and not extracted_dax_df.empty:
             st.write(f"### 📌 Total DAX Expressions Found: {len(extracted_dax_df)}")
-            option = st.radio("Select number of expressions to extract:", ["All", "Custom"], key="dax_option")
+            
+            if st.button("📄 Extract All DAX Expressions"):
+                st.write("### 📌 Extracted DAX Expressions")
+                st.dataframe(extracted_dax_df)
+                
+                csv = extracted_dax_df.to_csv(index=False).encode("utf-8")
+                st.download_button(
+                    label="📥 Download DAX Expressions",
+                    data=csv,
+                    file_name="dax_expressions.csv",
+                    mime="text/csv"
+                )
+            
+            option = st.radio("Select number of expressions to extract and convert:", ["All", "Custom"], key="dax_option")
             num_expressions = None if option == "All" else st.number_input("🔢 Number of DAX expressions to extract:", min_value=1, max_value=len(extracted_dax_df), value=5, key="num_dax")
         
             if st.button("🚀 Convert DAX Expressions to Tableau", key="convert_dax"):
