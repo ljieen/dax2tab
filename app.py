@@ -85,6 +85,14 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion", expanded=Tr
             extracted_dax_df = extracted_dax_df.reset_index()
             st.write(f"### 📌 Total DAX Expressions Found: {len(extracted_dax_df)}")
             
+            # Allow filtering by DisplayFolder if available
+            if "DisplayFolder" in extracted_dax_df.columns:
+                display_folders = extracted_dax_df["DisplayFolder"].dropna().unique().tolist()
+                display_folders.sort()
+                selected_folder = st.selectbox("Filter by Display Folder", ["All"] + display_folders, key="display_folder")
+                if selected_folder != "All":
+                    extracted_dax_df = extracted_dax_df[extracted_dax_df["DisplayFolder"] == selected_folder]
+            
             st.write("### 📄 Extracted DAX Expressions")
             st.dataframe(extracted_dax_df)
             
@@ -96,7 +104,7 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion", expanded=Tr
                 mime="text/csv"
             )
             
-            selected_indices = st.multiselect("Select expressions to convert:", extracted_dax_df.index.tolist())
+            selected_indices = st.multiselect("Select expressions for conversion", extracted_dax_df.index.astype(str).tolist())
             
             if st.button("🚀 Convert Selected DAX Expressions to Tableau", key="convert_selected_dax"):
                 selected_expressions = extracted_dax_df.loc[selected_indices, "Expression"].tolist()
