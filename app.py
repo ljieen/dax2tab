@@ -219,12 +219,16 @@ if "chat_history" not in st.session_state:
         {"role": "system", "content": "You are an assistant knowledgeable in Power BI DAX expressions and Tableau."}
     ]
 
+# Keep input state separate to prevent unnecessary re-runs
+if "user_input" not in st.session_state:
+    st.session_state.user_input = ""
+
 with st.expander("💬 4. Ask Me Anything!", expanded=True):
     st.write("Have any questions about Power BI, DAX expressions, or Tableau? Ask here!")
 
-    chat_placeholder = st.container()  # This ensures that new messages appear above the input field
+    chat_placeholder = st.container()  # Keeps chat messages above the input
 
-    # Format and display chat history dynamically
+    # Display chat history
     with chat_placeholder:
         for message in st.session_state.chat_history[1:]:  # Skip system prompt
             if isinstance(message, dict) and "role" in message and "content" in message:
@@ -234,36 +238,40 @@ with st.expander("💬 4. Ask Me Anything!", expanded=True):
                     st.markdown(f"🤖 **Bot:** {message['content']}")
 
     # User input (always at the bottom)
-    question = st.text_input("Enter your question:", key="question_input")
+    question = st.text_input("Enter your question:", key="question_input", value=st.session_state.user_input)
 
-    if question:
-        with st.spinner("🤖 Thinking..."):
-            try:
-                # Append user message to chat history
-                st.session_state.chat_history.append({"role": "user", "content": question})
+    if st.button("Send", key="send_button"):
+        if question.strip():  # Ensure input is not empty
+            with st.spinner("🤖 Thinking..."):
+                try:
+                    # Append user message to chat history
+                    st.session_state.chat_history.append({"role": "user", "content": question})
 
-                # Ensure chat history is properly formatted
-                formatted_messages = [
-                    {"role": msg["role"], "content": msg["content"]}
-                    for msg in st.session_state.chat_history
-                    if isinstance(msg, dict) and "role" in msg and "content" in msg
-                ]
+                    # Ensure chat history is properly formatted
+                    formatted_messages = [
+                        {"role": msg["role"], "content": msg["content"]}
+                        for msg in st.session_state.chat_history
+                        if isinstance(msg, dict) and "role" in msg and "content" in msg
+                    ]
 
-                # Get response from OpenAI API
-                response = openai.ChatCompletion.create(
-                    model="gpt-4",
-                    messages=formatted_messages,  # Ensure correct format
-                    max_tokens=500
-                )
+                    # Get response from OpenAI API
+                    response = openai.ChatCompletion.create(
+                        model="gpt-4",
+                        messages=formatted_messages,
+                        max_tokens=500
+                    )
 
-                # Extract response
-                answer = response["choices"][0]["message"]["content"].strip()
+                    # Extract response
+                    answer = response["choices"][0]["message"]["content"].strip()
 
-                # Append assistant message to history
-                st.session_state.chat_history.append({"role": "assistant", "content": answer})
+                    # Append assistant message to history
+                    st.session_state.chat_history.append({"role": "assistant", "content": answer})
 
-                # Refresh chat display
-                st.rerun()
+                    # Clear input field for the next question
+                    st.session_state.user_input = ""
 
-            except Exception as e:
-                st.error(f"Error during question processing: {e}")
+                    # Refresh chat display
+                    st.rerun()
+
+                except Exception as e:
+                    st.error(f"Error during question processing: {e}")
