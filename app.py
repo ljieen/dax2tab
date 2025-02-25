@@ -222,20 +222,18 @@ with st.expander("💬 4. Ask Me Anything!", expanded=True):
     for msg in st.session_state.chat_history:
         st.write(msg)
     
-    question = st.text_input("Enter your question:", key="question_input")
-    if question:
+    user_input = st.text_input("Enter your question:", key="question_input")
+    if user_input:
         with st.spinner("Generating answer..."):
             try:
-                st.session_state.chat_history.append(f"**You:** {question}")
+                st.session_state.chat_history.append({"role": "user", "content": user_input})
                 response = openai.ChatCompletion.create(
                     model="gpt-4",
-                    messages=[{"role": "system", "content": "You are an assistant knowledgeable in Power BI DAX expressions and Tableau."}] + 
-                             [{"role": "user", "content": q} for q in st.session_state.chat_history] +
-                             [{"role": "user", "content": question}],
+                    messages=[{"role": "system", "content": "You are an assistant knowledgeable in Power BI, DAX expressions, and Tableau."}] + st.session_state.chat_history,
                     max_tokens=500
                 )
                 answer = response.choices[0].message['content'].strip()
-                st.session_state.chat_history.append(f"**Bot:** {answer}")
+                st.session_state.chat_history.append({"role": "assistant", "content": answer})
                 st.write(f"**Bot:** {answer}")
             except Exception as e:
                 st.error(f"Error during question processing: {e}")
