@@ -222,19 +222,22 @@ if "chat_history" not in st.session_state:
 with st.expander("💬 4. Ask Me Anything!", expanded=True):
     st.write("Have any questions about Power BI, DAX expressions, or Tableau? Ask here!")
 
-    # Display chat history
-    for message in st.session_state.chat_history[1:]:  # Exclude system prompt
-        if isinstance(message, dict) and "role" in message and "content" in message:
-            if message["role"] == "user":
-                st.write(f"**You:** {message['content']}")
-            elif message["role"] == "assistant":
-                st.write(f"**Assistant:** {message['content']}")
+    chat_placeholder = st.container()  # This ensures that new messages appear above the input field
 
-    # User input
+    # Format and display chat history dynamically
+    with chat_placeholder:
+        for message in st.session_state.chat_history[1:]:  # Skip system prompt
+            if isinstance(message, dict) and "role" in message and "content" in message:
+                if message["role"] == "user":
+                    st.markdown(f"🧑‍💬 **You:** {message['content']}")
+                elif message["role"] == "assistant":
+                    st.markdown(f"🤖 **Bot:** {message['content']}")
+
+    # User input (always at the bottom)
     question = st.text_input("Enter your question:", key="question_input")
 
     if question:
-        with st.spinner("Generating answer..."):
+        with st.spinner("🤖 Thinking..."):
             try:
                 # Append user message to chat history
                 st.session_state.chat_history.append({"role": "user", "content": question})
@@ -259,9 +262,8 @@ with st.expander("💬 4. Ask Me Anything!", expanded=True):
                 # Append assistant message to history
                 st.session_state.chat_history.append({"role": "assistant", "content": answer})
 
-                # Display latest response
-                st.write("**Assistant:**")
-                st.write(answer)
+                # Refresh chat display
+                st.rerun()
 
             except Exception as e:
                 st.error(f"Error during question processing: {e}")
