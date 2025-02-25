@@ -82,7 +82,7 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion", expanded=Tr
     if "pbix_file_path" in st.session_state:
         extracted_dax_df = extract_all_dax_expressions(st.session_state.pbix_file_path)
         if isinstance(extracted_dax_df, pd.DataFrame) and not extracted_dax_df.empty:
-            extracted_dax_df = extracted_dax_df.reset_index()
+            extracted_dax_df = extracted_dax_df.reset_index(drop=True)
             st.write(f"### 📌 Total DAX Expressions Found: {len(extracted_dax_df)}")
             
             # Allow filtering by DisplayFolder if available
@@ -104,7 +104,7 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion", expanded=Tr
                 mime="text/csv"
             )
             
-            selected_indices = st.multiselect("Select expressions for conversion", extracted_dax_df.index.astype(str).tolist())
+            selected_indices = st.multiselect("Select expressions for conversion", extracted_dax_df.index.tolist())
             
             if st.button("🚀 Convert Selected DAX Expressions to Tableau", key="convert_selected_dax"):
                 selected_expressions = extracted_dax_df.loc[selected_indices, "Expression"].tolist()
