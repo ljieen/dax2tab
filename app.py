@@ -216,6 +216,7 @@ with st.expander("🔗 3. Relationships Extraction", expanded=True):
 # ✅ Q&A Chat Section
 
 # Initialize chat history in session state
+# Initialize chat history in session state
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = [
         {"role": "system", "content": "You are an assistant knowledgeable in Power BI DAX expressions and Tableau."}
@@ -269,9 +270,12 @@ with st.expander("💬 4. Ask Me Anything!", expanded=True):
                     # Append assistant message to history
                     st.session_state.chat_history.append({"role": "assistant", "content": answer})
 
-                    # 🔹 Clear input field
-                    st.session_state.user_input = ""  
-                    st.experimental_rerun()  # 🔄 Force rerun to refresh input box
+                    # 🔹 Clear input field by resetting session state (fixing previous issue)
+                    st.session_state.user_input = ""
+                    st.session_state["question_input"] = ""  # Reset input box manually
 
                 except Exception as e:
                     st.error(f"Error during question processing: {e}")
+
+    # Ensure the input box remains empty
+    st.session_state.user_input = ""
