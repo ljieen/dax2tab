@@ -215,68 +215,53 @@ with st.expander("🔗 3. Relationships Extraction", expanded=True):
 
 # ✅ Q&A Chat Section
 
-# Initialize chat history in session state
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = [
-        {"role": "system", "content": "You are an assistant knowledgeable in Power BI DAX expressions and Tableau."}
-    ]
+def generate_response(prompt):
+    completions = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": "You are a helpful AI assistant specialized in Power BI, DAX expressions, and Tableau."},
+            {"role": "user", "content": prompt}
+        ],
+        max_tokens=500,  # Set max tokens to 500
+        temperature=0.5
+    )
+    return completions.choices[0].message["content"].strip()
 
-# Function to clear input after sending a message
-def clear_input():
-    st.session_state.user_input = ""  # Reset input field
+# Store chat history in session state
+if "generated" not in st.session_state:
+    st.session_state["generated"] = []
+if "past" not in st.session_state:
+    st.session_state["past"] = []
 
-# Initialize user input in session state
-if "user_input" not in st.session_state:
-    st.session_state.user_input = ""
-
+# Create the "Ask Me Anything" section inside an expander
 with st.expander("💬 4. Ask Me Anything!", expanded=True):
     st.write("Have any questions about Power BI, DAX expressions, or Tableau? Ask here!")
 
-    chat_placeholder = st.container()  # Keeps chat messages above the input
-
     # Display chat history
+    chat_placeholder = st.container()
     with chat_placeholder:
-        for message in st.session_state.chat_history[1:]:  # Skip system prompt
-            if isinstance(message, dict) and "role" in message and "content" in message:
-                if message["role"] == "user":
-                    st.markdown(f"🧑‍💬 **You:** {message['content']}")
-                elif message["role"] == "assistant":
-                    st.markdown(f"🤖 **Bot:** {message['content']}")
+        for i in range(len(st.session_state["generated"]) - 1, -1, -1):
+            st.markdown(f"🤖 **Bot:** {st.session_state['generated'][i]}")
+            st.markdown(f"🧑‍💬 **You:** {st.session_state['past'][i]}")
 
-    # User input (always at the bottom)
-    question = st.text_input("Enter your question:", key="question_input", value=st.session_state.user_input)
+    # User input field (always at the bottom)
+    user_input = st.text_input("🧑‍💬 You:", key="question_input")
 
     if st.button("Send", key="send_button"):
-        if question.strip():  # Ensure input is not empty
+        if user_input.strip():  # Ensure input is not empty
             with st.spinner("🤖 Thinking..."):
                 try:
                     # Append user message to chat history
-                    st.session_state.chat_history.append({"role": "user", "content": question})
+                    st.session_state.past.append(user_input)
 
-                    # Ensure chat history is properly formatted
-                    formatted_messages = [
-                        {"role": msg["role"], "content": msg["content"]}
-                        for msg in st.session_state.chat_history
-                        if isinstance(msg, dict) and "role" in msg and "content" in msg
-                    ]
+                    # Get response from GPT-4
+                    output = generate_response(user_input)
 
-                    # Get response from OpenAI API
-                    response = openai.ChatCompletion.create(
-                        model="gpt-4",
-                        messages=formatted_messages,
-                        max_tokens=500
-                    )
+                    # Append bot response to chat history
+                    st.session_state.generated.append(output)
 
-                    # Extract response
-                    answer = response["choices"][0]["message"]["content"].strip()
-
-                    # Append assistant message to history
-                    st.session_state.chat_history.append({"role": "assistant", "content": answer})
-
-                    # 🔹 Clear input field properly
-                    st.session_state.user_input = ""
-                    st.session_state.pop("question_input", None)  # Remove old input state
+                    # Clear input field
+                    st.session_state["question_input"] = ""
 
                 except Exception as e:
                     st.error(f"Error during question processing: {e}")
-
