@@ -216,18 +216,17 @@ with st.expander("🔗 3. Relationships Extraction", expanded=True):
 # ✅ Q&A Chat Section
 
 # Initialize chat history in session state
-# Initialize chat history in session state
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = [
         {"role": "system", "content": "You are an assistant knowledgeable in Power BI DAX expressions and Tableau."}
     ]
 
+# Function to clear input after sending a message
+def clear_input():
+    st.session_state.user_input = ""  # Reset input field
+
 # Initialize user input in session state
 if "user_input" not in st.session_state:
-    st.session_state.user_input = ""
-
-def clear_input():
-    """Clears the input field after sending a message."""
     st.session_state.user_input = ""
 
 with st.expander("💬 4. Ask Me Anything!", expanded=True):
@@ -274,9 +273,9 @@ with st.expander("💬 4. Ask Me Anything!", expanded=True):
                     # Append assistant message to history
                     st.session_state.chat_history.append({"role": "assistant", "content": answer})
 
-                    # 🔹 Schedule input field to be cleared AFTER rerun
+                    # 🔹 Clear input field properly
                     st.session_state.user_input = ""
-                    st.text_input("Enter your question:", key="question_input", value="", disabled=True)  # Trick to clear input
+                    st.session_state.pop("question_input", None)  # Remove old input state
 
                 except Exception as e:
                     st.error(f"Error during question processing: {e}")
