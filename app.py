@@ -215,64 +215,47 @@ with st.expander("🔗 3. Relationships Extraction", expanded=True):
 
 # ✅ Q&A Chat Section
 
-# Function to generate a response using GPT-4
-import streamlit as st
-import openai
 
-# Set up the OpenAI API key
-openai.api_key = "YOUR_OPENAI_API_KEY"  # Replace with your actual API key
+# Initialize OpenAI model and messages in session state
+if "openai_model" not in st.session_state:
+    st.session_state["openai_model"] = "gpt-4"  # Always use GPT-4
 
-# Function to generate a response using GPT-4
-def generate_response(prompt):
-    completions = openai.ChatCompletion.create(
-        model="gpt-4",
-        messages=[
-            {"role": "system", "content": "You are a helpful AI assistant specialized in Power BI, DAX expressions, and Tableau."},
-            {"role": "user", "content": prompt}
-        ],
-        max_tokens=500,  # Set max tokens to 500
-        temperature=0.5
-    )
-    return completions.choices[0].message["content"].strip()
-
-# Store chat history in session state
-if "generated" not in st.session_state:
-    st.session_state["generated"] = []
-if "past" not in st.session_state:
-    st.session_state["past"] = []
-
-# Remove input state before rendering the input field to clear previous input
-st.session_state.pop("question_input", None)
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
 # Create the "Ask Me Anything" section inside an expander
 with st.expander("💬 4. Ask Me Anything!", expanded=True):
     st.write("Have any questions about Power BI, DAX expressions, or Tableau? Ask here!")
 
-    # Display chat history (chat remains visible)
-    chat_placeholder = st.container()
-    with chat_placeholder:
-        for i in range(len(st.session_state["generated"]) - 1, -1, -1):
-            st.markdown(f"🤖 **Bot:** {st.session_state['generated'][i]}")
-            st.markdown(f"🧑‍💬 **You:** {st.session_state['past'][i]}")
+    # Display previous messages (chat history)
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
 
-    # User input field (this will be cleared after submission)
-    user_input = st.text_input("🧑‍💬 You:", key="question_input")
+    # User input field (always at the bottom)
+    if user_input := st.chat_input("🧑‍💬 Type your question here..."):
+        # Store user message
+        st.session_state.messages.append({"role": "user", "content": user_input})
+        with st.chat_message("user"):
+            st.markdown(user_input)
 
-    if st.button("Send", key="send_button"):
-        if user_input.strip():  # Ensure input is not empty
-            with st.spinner("🤖 Thinking..."):
-                try:
-                    # Append user message to chat history
-                    st.session_state.past.append(user_input)
+        # Generate response dynamically (streaming)
+        with st.chat_message("assistant"):
+            message_placeholder = st.empty()
+            full_response = ""
 
-                    # Get response from GPT-4
-                    output = generate_response(user_input)
+            for response in openai.ChatCompletion.create(
+                model="gpt-4",  # Always using GPT-4
+                messages=[
+                    {"role": m["role"], "content": m["content"]}
+                    for m in st.session_state.messages
+                ],
+                stream=True,  # Enable streaming
+            ):
+                full_response += response.choices[0].delta.get("content", "")
+                message_placeholder.markdown(full_response + "▌")
 
-                    # Append bot response to chat history
-                    st.session_state.generated.append(output)
+            message_placeholder.markdown(full_response)  # Final response
 
-                    # 🔄 Force UI update to clear input and refresh chat
-                    st.rerun()
-
-                except Exception as e:
-                    st.error(f"Error during question processing: {e}")
+        # Store assistant response
+        st.session_state.messages.append({"role": "assistant", "content": full_response})
