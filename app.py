@@ -80,12 +80,13 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion", expanded=Tr
             return f"Error during conversion: {e}"
 
     if "pbix_file_path" in st.session_state:
-        option = st.radio("Select number of expressions to extract:", ["All", "Custom"], key="dax_option")
-        num_expressions = None if option == "All" else st.number_input("🔢 Number of DAX expressions to extract:", min_value=1, max_value=100, value=5, key="num_dax")
+        extracted_dax_df = extract_all_dax_expressions(st.session_state.pbix_file_path)
+        if isinstance(extracted_dax_df, pd.DataFrame) and not extracted_dax_df.empty:
+            st.write(f"### 📌 Total DAX Expressions Found: {len(extracted_dax_df)}")
+            option = st.radio("Select number of expressions to extract:", ["All", "Custom"], key="dax_option")
+            num_expressions = None if option == "All" else st.number_input("🔢 Number of DAX expressions to extract:", min_value=1, max_value=len(extracted_dax_df), value=5, key="num_dax")
         
-        if st.button("🚀 Extract and Convert DAX Expressions", key="extract_convert_dax"):
-            extracted_dax_df = extract_all_dax_expressions(st.session_state.pbix_file_path)
-            if isinstance(extracted_dax_df, pd.DataFrame) and not extracted_dax_df.empty:
+            if st.button("🚀 Convert DAX Expressions to Tableau", key="convert_dax"):
                 dax_expressions = extracted_dax_df["Expression"].tolist()
                 if num_expressions is not None:
                     dax_expressions = dax_expressions[:num_expressions]
@@ -103,8 +104,8 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion", expanded=Tr
                     file_name="converted_dax_expressions.csv",
                     mime="text/csv"
                 )
-            else:
-                st.write(extracted_dax_df)
+        else:
+            st.write(extracted_dax_df)
     else:
         st.warning("⚠️ Please upload a PBIX file first.")
 
