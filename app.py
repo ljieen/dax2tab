@@ -80,7 +80,7 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion", expanded=Tr
                 model="gpt-4",
                 messages=[
                     {"role": "system", "content": "You convert DAX expressions to Tableau calculated fields. Do not include the data source name in the conversion."},
-                    {"role": "user", "content": f"Convert this DAX expression to Tableau without including the data source name: {dax_expression}. Provide a brief explanation of the conversion before giving the actual formula."}
+                    {"role": "user", "content": f"Convert this DAX expression to Tableau without including the data source name: {dax_expression}. Provide an explanation of the Tableau calculated field conversion before giving the actual formula."}
                 ],
                 max_tokens=300
             )
@@ -123,7 +123,7 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion", expanded=Tr
                     explanation, formula = conversion_result.split("\n", 1) if "\n" in conversion_result else ("Explanation not provided", conversion_result)
                     converted_data.append((row["Name"], row["DisplayFolder"], row["Expression"], explanation, formula))
                 
-                converted_df = pd.DataFrame(converted_data, columns=["DAX Name", "Display Folder", "DAX Expression", "Explanation", "Tableau Calculation"])
+                converted_df = pd.DataFrame(converted_data, columns=["DAX Name", "Display Folder", "DAX Expression", "Tableau Explanation", "Tableau Calculation"])
                 
                 st.write("### 📌 Converted DAX Expressions to Tableau Calculated Fields")
                 st.dataframe(converted_df)
@@ -139,11 +139,6 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion", expanded=Tr
             st.write(extracted_dax_df)
     else:
         st.warning("⚠️ Please upload a PBIX file first.")
-
-
-
-
-
 ##relationships
 
 
