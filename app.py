@@ -26,7 +26,7 @@ with st.sidebar:
         st.session_state.pbix_file_path = temp_path
         st.success("✅ PBIX file uploaded successfully!")
 
-# ✅ Initialize session state for persistent sections
+# ✅ Initialize session state for section expansion
 if "sections_open" not in st.session_state:
     st.session_state.sections_open = {
         "datasource": True,
@@ -35,20 +35,20 @@ if "sections_open" not in st.session_state:
         "qna": True
     }
 
-# ✅ Function to keep sections open
-def keep_section_open(key):
-    """Ensures sections remain open after interactions."""
-    if key not in st.session_state.sections_open:
-        st.session_state.sections_open[key] = True
-    return st.session_state.sections_open[key]
+# ✅ Function to toggle sections
 
-# ✅ Always Open Section: Datasource Setup
-if keep_section_open("datasource"):
+def toggle_section(key):
+    st.session_state.sections_open[key] = not st.session_state.sections_open[key]
+
+# ✅ Datasource Setup Section
+if st.session_state.sections_open["datasource"]:
     with st.container():
         st.subheader("🔍 1. Datasource Setup")
         st.write("Identify key tables and columns in your Power BI data and suggest an appropriate Tableau datasource structure.")
 
-        # Function to extract schema from the PBIX file
+        if st.button("Toggle Datasource Section", key="toggle_datasource"):
+            toggle_section("datasource")
+
         def extract_schema(file_path):
             try:
                 model = PBIXRay(file_path)
@@ -73,18 +73,20 @@ if keep_section_open("datasource"):
             else:
                 st.warning("Please upload a PBIX file to proceed.")
 
-# ✅ Always Open Section: DAX Extraction & Conversion
-if keep_section_open("dax_conversion"):
+# ✅ DAX Extraction & Conversion Section
+if st.session_state.sections_open["dax_conversion"]:
     with st.container():
         st.subheader("🔄 2. DAX Expression Extraction and Conversion")
         st.write("Extract and convert DAX expressions from your Power BI file into Tableau-compatible calculated fields.")
 
-        # Function to extract all DAX expressions from a PBIX file
+        if st.button("Toggle DAX Section", key="toggle_dax"):
+            toggle_section("dax_conversion")
+
         def extract_all_dax_expressions(file_path):
             try:
                 model = PBIXRay(file_path)
                 dax_measures = model.dax_measures
-                return dax_measures[['Expression']] if not dax_measures.empty and 'Expression' in dax_measures.columns else "No DAX expressions found."
+                return dax_measures[["Expression"]] if not dax_measures.empty and "Expression" in dax_measures.columns else "No DAX expressions found."
             except Exception as e:
                 return f"Error during DAX extraction: {e}"
 
@@ -103,11 +105,14 @@ if keep_section_open("dax_conversion"):
         else:
             st.warning("⚠️ Please upload a PBIX file first.")
 
-# ✅ Always Open Section: Relationships Extraction
-if keep_section_open("relationships"):
+# ✅ Relationships Extraction Section
+if st.session_state.sections_open["relationships"]:
     with st.container():
         st.subheader("🔗 3. Relationships Extraction")
         st.write("Extract relationships from your Power BI data model to help you maintain data integrity in Tableau.")
+
+        if st.button("Toggle Relationships Section", key="toggle_relationships"):
+            toggle_section("relationships")
 
         def extract_relationships(file_path):
             try:
@@ -127,11 +132,14 @@ if keep_section_open("relationships"):
             else:
                 st.warning("Please upload a PBIX file to proceed.")
 
-# ✅ Always Open Section: Q&A Chat
-if keep_section_open("qna"):
+# ✅ Q&A Chat Section
+if st.session_state.sections_open["qna"]:
     with st.container():
         st.subheader("💬 4. Ask Me Anything!")
         st.write("Have any questions about Power BI, DAX expressions, or Tableau? Ask here!")
+
+        if st.button("Toggle Q&A Section", key="toggle_qna"):
+            toggle_section("qna")
 
         question = st.text_input("Enter your question:", key="question_input")
         if question:
