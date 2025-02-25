@@ -126,9 +126,71 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion", expanded=Tr
     else:
         st.warning("⚠️ Please upload a PBIX file first.")
 
-# ✅ Relationships Extraction Section
 with st.expander("🔗 3. Relationships Extraction", expanded=True):
-    st.write("Extract relationships from your Power BI data model to help you maintain data integrity in Tableau.")
+    st.write("Extract relationships from your Power BI data model to help you maintain data integrity and relationships in Tableau.")
+
+    # Function to extract relationships from the PBIX file
+    def extract_relationships(file_path):
+        try:
+            model = PBIXRay(file_path)
+            relationships = model.relationships
+            if relationships.empty:
+                return "No relationships found."
+            return relationships
+        except Exception as e:
+            return f"Error during relationships extraction: {e}"
+
+    # Function to generate SQL LEFT JOIN scripts from the relationships table for each row
+    def generate_sql_scripts_from_relationships(df):
+        sql_scripts = []
+        current_from_table = None
+        current_script = ""
+
+        for index, row in df.iterrows():
+            if row['FromTableName'] != current_from_table:
+                # Start a new SQL script when the FromTableName changes
+                current_from_table = row['FromTableName']
+                current_script = f"FROM {current_from_table} a"
+            
+            # Add the LEFT JOIN for the current row
+            current_row_script = f"{current_script} LEFT JOIN {row['ToTableName']} b ON a.{row['FromColumnName']} = b.{row['ToColumnName']}"
+            
+            sql_scripts.append(current_row_script)  # Append script for this specific row
+
+        return sql_scripts
+
+    if st.button("Extract Relationships"):
+        if uploaded_file:
+            with open("temp_file.pbix", "wb") as f:
+                f.write(uploaded_file.getbuffer())
+            relationships = extract_relationships("temp_file.pbix")
+            if isinstance(relationships, pd.DataFrame):
+                # Filter active relationships
+                active_relationships = relationships[relationships['IsActive'] == 1]
+                
+                # Add Suggested Joins column based on Cardinality
+                active_relationships['Suggested Joins'] = active_relationships['Cardinality'].apply(
+                    lambda x: 'Left join at physical layer or M:1 at logical layer' if x == 'M:1' else 'N/A'
+                )
+                
+                # Drop all columns after 'CrossFilteringBehaviour' except 'Suggested Joins'
+                if 'CrossFilteringBehaviour' in active_relationships.columns:
+                    crossfilter_index = active_relationships.columns.get_loc('CrossFilteringBehaviour')
+                    cols_to_keep = list(active_relationships.columns[:crossfilter_index + 1]) + ['Suggested Joins']
+                    active_relationships = active_relationships.loc[:, cols_to_keep]
+
+                # Generate SQL scripts directly from relationships table for each row
+                sql_scripts = generate_sql_scripts_from_relationships(active_relationships)
+                
+                # Assign the SQL scripts to each row
+                active_relationships['SQL Script'] = sql_scripts
+                
+                st.write("Active Relationships with Suggested Joins and SQL Scripts:")
+                st.dataframe(active_relationships)
+            else:
+                st.write(relationships)
+        else:
+            st.warning("Please upload a PBIX file to proceed.")
 
 # ✅ Q&A Chat Section
 with st.expander("💬 4. Ask Me Anything!", expanded=True):
