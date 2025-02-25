@@ -35,8 +35,15 @@ if "sections_open" not in st.session_state:
         "qna": True
     }
 
+# ✅ Function to toggle sections
+
+def toggle_section(key):
+    st.session_state.sections_open[key] = not st.session_state.sections_open[key]
+
 # ✅ Datasource Setup Section
-with st.expander("🔍 1. Datasource Setup", expanded=True):
+with st.expander("🔍 1. Datasource Setup", expanded=st.session_state.sections_open["datasource"]):
+    if st.button("Toggle Datasource Section", key="toggle_datasource"):
+        toggle_section("datasource")
     st.write("Identify key tables and columns in your Power BI data and suggest an appropriate Tableau datasource structure.")
 
     def extract_schema(file_path):
@@ -63,7 +70,9 @@ with st.expander("🔍 1. Datasource Setup", expanded=True):
             st.warning("Please upload a PBIX file to proceed.")
 
 # ✅ DAX Extraction & Conversion Section
-with st.expander("🔄 2. DAX Expression Extraction and Conversion", expanded=True):
+with st.expander("🔄 2. DAX Expression Extraction and Conversion", expanded=st.session_state.sections_open["dax_conversion"]):
+    if st.button("Toggle DAX Section", key="toggle_dax"):
+        toggle_section("dax_conversion")
     st.write("Extract and convert DAX expressions from your Power BI file into Tableau-compatible calculated fields.")
 
     def extract_all_dax_expressions(file_path):
@@ -90,7 +99,9 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion", expanded=Tr
         st.warning("⚠️ Please upload a PBIX file first.")
 
 # ✅ Relationships Extraction Section
-with st.expander("🔗 3. Relationships Extraction", expanded=True):
+with st.expander("🔗 3. Relationships Extraction", expanded=st.session_state.sections_open["relationships"]):
+    if st.button("Toggle Relationships Section", key="toggle_relationships"):
+        toggle_section("relationships")
     st.write("Extract relationships from your Power BI data model to help you maintain data integrity in Tableau.")
 
     def extract_relationships(file_path):
@@ -112,7 +123,9 @@ with st.expander("🔗 3. Relationships Extraction", expanded=True):
             st.warning("Please upload a PBIX file to proceed.")
 
 # ✅ Q&A Chat Section
-with st.expander("💬 4. Ask Me Anything!", expanded=True):
+with st.expander("💬 4. Ask Me Anything!", expanded=st.session_state.sections_open["qna"]):
+    if st.button("Toggle Q&A Section", key="toggle_qna"):
+        toggle_section("qna")
     st.write("Have any questions about Power BI, DAX expressions, or Tableau? Ask here!")
 
     question = st.text_input("Enter your question:", key="question_input")
