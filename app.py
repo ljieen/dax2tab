@@ -236,13 +236,20 @@ with st.expander("💬 4. Ask Me Anything!", expanded=True):
     if question:
         with st.spinner("Generating answer..."):
             try:
-                # Append user message to history
+                # Append user message to chat history
                 st.session_state.chat_history.append({"role": "user", "content": question})
+
+                # Ensure chat history is properly formatted
+                formatted_messages = [
+                    {"role": msg["role"], "content": msg["content"]}
+                    for msg in st.session_state.chat_history
+                    if isinstance(msg, dict) and "role" in msg and "content" in msg
+                ]
 
                 # Get response from OpenAI API
                 response = openai.ChatCompletion.create(
                     model="gpt-4",
-                    messages=st.session_state.chat_history,
+                    messages=formatted_messages,  # Ensure correct format
                     max_tokens=500
                 )
 
