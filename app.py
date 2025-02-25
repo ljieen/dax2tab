@@ -216,6 +216,13 @@ with st.expander("🔗 3. Relationships Extraction", expanded=True):
 # ✅ Q&A Chat Section
 
 # Function to generate a response using GPT-4
+import streamlit as st
+import openai
+
+# Set up the OpenAI API key
+openai.api_key = "YOUR_OPENAI_API_KEY"  # Replace with your actual API key
+
+# Function to generate a response using GPT-4
 def generate_response(prompt):
     completions = openai.ChatCompletion.create(
         model="gpt-4",
@@ -234,6 +241,9 @@ if "generated" not in st.session_state:
 if "past" not in st.session_state:
     st.session_state["past"] = []
 
+# Remove input state before rendering the input field to clear previous input
+st.session_state.pop("question_input", None)
+
 # Create the "Ask Me Anything" section inside an expander
 with st.expander("💬 4. Ask Me Anything!", expanded=True):
     st.write("Have any questions about Power BI, DAX expressions, or Tableau? Ask here!")
@@ -246,7 +256,7 @@ with st.expander("💬 4. Ask Me Anything!", expanded=True):
             st.markdown(f"🧑‍💬 **You:** {st.session_state['past'][i]}")
 
     # User input field (this will be cleared after submission)
-    user_input = st.text_input("🧑‍💬 You:", key="question_input", value="")
+    user_input = st.text_input("🧑‍💬 You:", key="question_input")
 
     if st.button("Send", key="send_button"):
         if user_input.strip():  # Ensure input is not empty
@@ -261,10 +271,7 @@ with st.expander("💬 4. Ask Me Anything!", expanded=True):
                     # Append bot response to chat history
                     st.session_state.generated.append(output)
 
-                    # 🔹 Clear only the input field (chat history remains)
-                    st.session_state["question_input"] = ""
-
-                    # 🔄 Force UI update so input clears instantly
+                    # 🔄 Force UI update to clear input and refresh chat
                     st.rerun()
 
                 except Exception as e:
