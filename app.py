@@ -216,20 +216,26 @@ with st.expander("🔗 3. Relationships Extraction", expanded=True):
 # ✅ Q&A Chat Section
 with st.expander("💬 4. Ask Me Anything!", expanded=True):
     st.write("Have any questions about Power BI, DAX expressions, or Tableau? Ask here!")
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = []
+    
+    for msg in st.session_state.chat_history:
+        st.write(msg)
+    
     question = st.text_input("Enter your question:", key="question_input")
     if question:
         with st.spinner("Generating answer..."):
             try:
+                st.session_state.chat_history.append(f"**You:** {question}")
                 response = openai.ChatCompletion.create(
                     model="gpt-4",
-                    messages=[
-                        {"role": "system", "content": "You are an assistant knowledgeable in Power BI DAX expressions and Tableau."},
-                        {"role": "user", "content": question}
-                    ],
+                    messages=[{"role": "system", "content": "You are an assistant knowledgeable in Power BI DAX expressions and Tableau."}] + 
+                             [{"role": "user", "content": q} for q in st.session_state.chat_history] +
+                             [{"role": "user", "content": question}],
                     max_tokens=500
                 )
                 answer = response.choices[0].message['content'].strip()
-                st.write("**Answer:**")
-                st.write(answer)
+                st.session_state.chat_history.append(f"**Bot:** {answer}")
+                st.write(f"**Bot:** {answer}")
             except Exception as e:
                 st.error(f"Error during question processing: {e}")
