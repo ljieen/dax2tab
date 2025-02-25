@@ -113,7 +113,11 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion", expanded=Tr
                 mime="text/csv"
             )
             
-            selected_indices = st.multiselect("Select expressions for conversion", extracted_dax_df.index.tolist())
+            selection_options = ["All"] + extracted_dax_df.index.tolist()
+            selected_indices = st.multiselect("Select expressions for conversion", selection_options)
+            
+            if "All" in selected_indices:
+                selected_indices = extracted_dax_df.index.tolist()
             
             if st.button("🚀 Convert Selected DAX Expressions to Tableau", key="convert_selected_dax"):
                 selected_data = extracted_dax_df.loc[selected_indices, ["Name", "DisplayFolder", "Expression"]]
@@ -139,6 +143,7 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion", expanded=Tr
             st.write(extracted_dax_df)
     else:
         st.warning("⚠️ Please upload a PBIX file first.")
+
 ##relationships
 
 
