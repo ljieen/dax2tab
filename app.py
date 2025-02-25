@@ -232,35 +232,36 @@ with st.expander("💬 4. Ask Me Anything!", expanded=True):
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
 
-    # User input field (always at the bottom)
-    user_input = st.chat_input("🧑‍💬 Type your question here...")
+# 🔹 Ensure input box stays at the bottom
+user_input = st.chat_input("🧑‍💬 Type your question here...")
 
-    if user_input:
-        # Store user message in chat history
-        st.session_state.messages.append({"role": "user", "content": user_input})
-        with st.chat_message("user"):
-            st.markdown(user_input)
+if user_input:
+    # Store user message in chat history
+    st.session_state.messages.append({"role": "user", "content": user_input})
+    with st.chat_message("user"):
+        st.markdown(user_input)
 
-        # Generate assistant response dynamically (streaming)
-        with st.chat_message("assistant"):
-            message_placeholder = st.empty()
-            full_response = ""
+    # Generate assistant response dynamically (streaming)
+    with st.chat_message("assistant"):
+        message_placeholder = st.empty()
+        full_response = ""
 
-            # Call OpenAI's API with chat history
-            response = openai.ChatCompletion.create(
-                model="gpt-4",
-                messages=st.session_state.messages,  # Pass full chat history
-                stream=True,  # Enable streaming response
-            )
+        # Call OpenAI's API with chat history
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=st.session_state.messages,  # Pass full chat history
+            stream=True,  # Enable streaming response
+        )
 
-            # Process streaming response
-            for chunk in response:
-                if "choices" in chunk and len(chunk["choices"]) > 0:
-                    delta = chunk["choices"][0]["delta"].get("content", "")
-                    full_response += delta
-                    message_placeholder.markdown(full_response + "▌")
+        # Process streaming response
+        for chunk in response:
+            if "choices" in chunk and len(chunk["choices"]) > 0:
+                delta = chunk["choices"][0]["delta"].get("content", "")
+                full_response += delta
+                message_placeholder.markdown(full_response + "▌")
 
-            message_placeholder.markdown(full_response)  # Display final response
+        message_placeholder.markdown(full_response)  # Display final response
 
-        # Store assistant response in chat history
-        st.session_state.messages.append({"role": "assistant", "content": full_response})
+    # Store assistant response in chat history
+    st.session_state.messages.append({"role": "assistant", "content": full_response})
+
