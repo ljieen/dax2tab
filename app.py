@@ -55,7 +55,7 @@ with st.expander("🔍 1. Datasource Setup", expanded=True):
 
 # ✅ DAX Extraction & Conversion Section
 with st.expander("🔄 2. DAX Expression Extraction and Conversion", expanded=True):
-    st.write("Extract DAX expressions from your Power BI file. You can choose to extract all expressions or convert them into Tableau-compatible calculated fields.")
+    st.write("Extract DAX expressions from your Power BI file. You can choose to extract all expressions or convert selected ones into Tableau-compatible calculated fields.")
 
     def extract_all_dax_expressions(file_path):
         try:
@@ -82,32 +82,28 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion", expanded=Tr
     if "pbix_file_path" in st.session_state:
         extracted_dax_df = extract_all_dax_expressions(st.session_state.pbix_file_path)
         if isinstance(extracted_dax_df, pd.DataFrame) and not extracted_dax_df.empty:
+            extracted_dax_df = extracted_dax_df.reset_index()
             st.write(f"### 📌 Total DAX Expressions Found: {len(extracted_dax_df)}")
             
-            if st.button("📄 Extract All DAX Expressions"):
-                st.write("### 📌 Extracted DAX Expressions")
-                st.dataframe(extracted_dax_df)
-                
-                csv = extracted_dax_df.to_csv(index=False).encode("utf-8")
-                st.download_button(
-                    label="📥 Download DAX Expressions",
-                    data=csv,
-                    file_name="dax_expressions.csv",
-                    mime="text/csv"
-                )
+            st.write("### 📄 Extracted DAX Expressions")
+            st.dataframe(extracted_dax_df)
             
-            option = st.radio("Select number of expressions to extract and convert:", ["All", "Custom"], key="dax_option")
-            num_expressions = None if option == "All" else st.number_input("🔢 Number of DAX expressions to extract:", min_value=1, max_value=len(extracted_dax_df), value=5, key="num_dax")
-        
-            if st.button("🚀 Convert DAX Expressions to Tableau", key="convert_dax"):
-                dax_expressions = extracted_dax_df["Expression"].tolist()
-                if num_expressions is not None:
-                    dax_expressions = dax_expressions[:num_expressions]
-                
-                converted_data = [(expr, convert_dax_to_tableau(expr)) for expr in dax_expressions]
+            csv = extracted_dax_df.to_csv(index=False).encode("utf-8")
+            st.download_button(
+                label="📥 Download DAX Expressions",
+                data=csv,
+                file_name="dax_expressions.csv",
+                mime="text/csv"
+            )
+            
+            selected_indices = st.multiselect("Select expressions to convert:", extracted_dax_df.index.tolist())
+            
+            if st.button("🚀 Convert Selected DAX Expressions to Tableau", key="convert_selected_dax"):
+                selected_expressions = extracted_dax_df.loc[selected_indices, "Expression"].tolist()
+                converted_data = [(expr, convert_dax_to_tableau(expr)) for expr in selected_expressions]
                 converted_df = pd.DataFrame(converted_data, columns=["DAX Expression", "Tableau Calculation"])
                 
-                st.write("### 📌 Extracted and Converted DAX Expressions")
+                st.write("### 📌 Converted DAX Expressions to Tableau Calculated Fields")
                 st.dataframe(converted_df)
                 
                 csv = converted_df.to_csv(index=False).encode("utf-8")
