@@ -80,7 +80,7 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion", expanded=Tr
                 model="gpt-4",
                 messages=[
                     {"role": "system", "content": "You convert DAX expressions to Tableau calculated fields. Do not include the data source name in the conversion."},
-                    {"role": "user", "content": f"Convert this DAX expression to Tableau without including the data source name: {dax_expression}"}
+                    {"role": "user", "content": f"Convert this DAX expression to Tableau without including the data source name: {dax_expression}. Provide a brief explanation of the conversion before giving the actual formula."}
                 ],
                 max_tokens=300
             )
@@ -116,9 +116,14 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion", expanded=Tr
             selected_indices = st.multiselect("Select expressions for conversion", extracted_dax_df.index.tolist())
             
             if st.button("🚀 Convert Selected DAX Expressions to Tableau", key="convert_selected_dax"):
-                selected_expressions = extracted_dax_df.loc[selected_indices, "Expression"].tolist()
-                converted_data = [(expr, convert_dax_to_tableau(expr)) for expr in selected_expressions]
-                converted_df = pd.DataFrame(converted_data, columns=["DAX Expression", "Tableau Calculation"])
+                selected_data = extracted_dax_df.loc[selected_indices, ["Name", "DisplayFolder", "Expression"]]
+                converted_data = []
+                for _, row in selected_data.iterrows():
+                    conversion_result = convert_dax_to_tableau(row["Expression"])
+                    explanation, formula = conversion_result.split("\n", 1) if "\n" in conversion_result else ("Explanation not provided", conversion_result)
+                    converted_data.append((row["Name"], row["DisplayFolder"], row["Expression"], explanation, formula))
+                
+                converted_df = pd.DataFrame(converted_data, columns=["DAX Name", "Display Folder", "DAX Expression", "Explanation", "Tableau Calculation"])
                 
                 st.write("### 📌 Converted DAX Expressions to Tableau Calculated Fields")
                 st.dataframe(converted_df)
@@ -134,6 +139,7 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion", expanded=Tr
             st.write(extracted_dax_df)
     else:
         st.warning("⚠️ Please upload a PBIX file first.")
+
 
 
 
