@@ -220,7 +220,8 @@ with st.expander("💬 4. Ask Me Anything!", expanded=True):
         st.session_state.chat_history = []
     
     for msg in st.session_state.chat_history:
-        st.write(f"**{msg['role'].capitalize()}:** {msg['content']}")
+        if isinstance(msg, dict) and "role" in msg and "content" in msg:
+            st.write(f"**{msg['role'].capitalize()}:** {msg['content']}")
     
     user_input = st.text_input("Enter your question:", key="question_input")
     if user_input:
