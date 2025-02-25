@@ -27,6 +27,7 @@ with st.sidebar:
         st.success("✅ PBIX file uploaded successfully!")
 
 # ✅ Datasource Setup Section
+# ✅ Datasource Setup Section
 with st.expander("🔍 1. Datasource Setup", expanded=True):
     st.write("Identify key tables and columns in your Power BI data and suggest an appropriate Tableau datasource structure.")
     
@@ -48,10 +49,20 @@ with st.expander("🔍 1. Datasource Setup", expanded=True):
                     st.write(f"📂 **{table}**")
                     columns = schema[schema["TableName"] == table]["ColumnName"].tolist()
                     st.write(", ".join(columns) if columns else "No columns found.")
+                
+                # Provide download option
+                csv = schema.to_csv(index=False).encode("utf-8")
+                st.download_button(
+                    label="📥 Download Extracted Schema",
+                    data=csv,
+                    file_name="extracted_schema.csv",
+                    mime="text/csv"
+                )
             else:
                 st.write(schema)
         else:
             st.warning("Please upload a PBIX file to proceed.")
+
 
 # ✅ DAX Extraction & Conversion Section
 with st.expander("🔄 2. DAX Expression Extraction and Conversion", expanded=True):
