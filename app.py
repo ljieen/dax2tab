@@ -219,43 +219,42 @@ if "chat_history" not in st.session_state:
         {"role": "system", "content": "You are an assistant knowledgeable in Power BI DAX expressions and Tableau."}
     ]
 
-st.expander("💬 4. Ask Me Anything!", expanded=True)
-st.write("Have any questions about Power BI, DAX expressions, or Tableau? Ask here!")
+with st.expander("💬 4. Ask Me Anything!", expanded=True):
+    st.write("Have any questions about Power BI, DAX expressions, or Tableau? Ask here!")
 
-# Display chat history
-for message in st.session_state.chat_history[1:]:  # Exclude system prompt
-    if message["role"] == "user":
-        st.write(f"**You:** {message['content']}")
-    else:
-        st.write(f"**Assistant:** {message['content']}")
+    # Display chat history
+    for message in st.session_state.chat_history[1:]:  # Exclude system prompt
+        if isinstance(message, dict) and "role" in message and "content" in message:
+            if message["role"] == "user":
+                st.write(f"**You:** {message['content']}")
+            elif message["role"] == "assistant":
+                st.write(f"**Assistant:** {message['content']}")
 
-# User input
-question = st.text_input("Enter your question:", key="question_input")
+    # User input
+    question = st.text_input("Enter your question:", key="question_input")
 
-if question:
-    with st.spinner("Generating answer..."):
-        try:
-            # Append user message to history
-            st.session_state.chat_history.append({"role": "user", "content": question})
+    if question:
+        with st.spinner("Generating answer..."):
+            try:
+                # Append user message to history
+                st.session_state.chat_history.append({"role": "user", "content": question})
 
-            # Get response from OpenAI API
-            response = openai.ChatCompletion.create(
-                model="gpt-4",
-                messages=st.session_state.chat_history,
-                max_tokens=500
-            )
+                # Get response from OpenAI API
+                response = openai.ChatCompletion.create(
+                    model="gpt-4",
+                    messages=st.session_state.chat_history,
+                    max_tokens=500
+                )
 
-            # Extract response
-            answer = response.choices[0].message['content'].strip()
+                # Extract response
+                answer = response["choices"][0]["message"]["content"].strip()
 
-            # Append assistant message to history
-            st.session_state.chat_history.append({"role": "assistant", "content": answer})
+                # Append assistant message to history
+                st.session_state.chat_history.append({"role": "assistant", "content": answer})
 
-            # Display latest response
-            st.write("**Assistant:**")
-            st.write(answer)
+                # Display latest response
+                st.write("**Assistant:**")
+                st.write(answer)
 
-        except Exception as e:
-            st.error(f"Error during question processing: {e}")
-
-
+            except Exception as e:
+                st.error(f"Error during question processing: {e}")
