@@ -214,7 +214,6 @@ with st.expander("🔗 3. Relationships Extraction", expanded=True):
             st.warning("Please upload a PBIX file to proceed.")
 
 # ✅ Q&A Chat Section
-
 def generate_response(prompt):
     completions = openai.ChatCompletion.create(
         model="gpt-4",
@@ -260,8 +259,8 @@ with st.expander("💬 4. Ask Me Anything!", expanded=True):
                     # Append bot response to chat history
                     st.session_state.generated.append(output)
 
-                    # Clear input field
-                    st.session_state["question_input"] = ""
+                    # 🔹 Clear input field properly using pop()
+                    st.session_state.pop("question_input")
 
                 except Exception as e:
                     st.error(f"Error during question processing: {e}")
