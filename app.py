@@ -226,6 +226,10 @@ if "chat_history" not in st.session_state:
 if "user_input" not in st.session_state:
     st.session_state.user_input = ""
 
+def clear_input():
+    """Clears the input field after sending a message."""
+    st.session_state.user_input = ""
+
 with st.expander("💬 4. Ask Me Anything!", expanded=True):
     st.write("Have any questions about Power BI, DAX expressions, or Tableau? Ask here!")
 
@@ -270,12 +274,10 @@ with st.expander("💬 4. Ask Me Anything!", expanded=True):
                     # Append assistant message to history
                     st.session_state.chat_history.append({"role": "assistant", "content": answer})
 
-                    # 🔹 Clear input field by resetting session state (fixing previous issue)
+                    # 🔹 Schedule input field to be cleared AFTER rerun
                     st.session_state.user_input = ""
-                    st.session_state["question_input"] = ""  # Reset input box manually
+                    st.text_input("Enter your question:", key="question_input", value="", disabled=True)  # Trick to clear input
 
                 except Exception as e:
                     st.error(f"Error during question processing: {e}")
 
-    # Ensure the input box remains empty
-    st.session_state.user_input = ""
