@@ -48,15 +48,6 @@ with st.expander("🔍 1. Datasource Setup", expanded=True):
                     st.write(f"📂 **{table}**")
                     columns = schema[schema["TableName"] == table]["ColumnName"].tolist()
                     st.write(", ".join(columns) if columns else "No columns found.")
-                
-                # Provide download option
-                csv = schema.to_csv(index=False).encode("utf-8")
-                st.download_button(
-                    label="📥 Download Extracted Schema",
-                    data=csv,
-                    file_name="extracted_schema.csv",
-                    mime="text/csv"
-                )
             else:
                 st.write(schema)
         else:
@@ -65,13 +56,21 @@ with st.expander("🔍 1. Datasource Setup", expanded=True):
 # ✅ DAX Extraction & Conversion Section
 with st.expander("🔄 2. DAX Expression Extraction and Conversion", expanded=True):
     st.write("Extract DAX expressions from your Power BI file. You can choose to extract all expressions or convert selected ones into Tableau-compatible calculated fields.")
-    
+
+    def extract_all_dax_expressions(file_path):
+        try:
+            model = PBIXRay(file_path)
+            dax_measures = model.dax_measures
+            return dax_measures if not dax_measures.empty else "No DAX expressions found."
+        except Exception as e:
+            return f"Error during DAX extraction: {e}"
+
     def convert_dax_to_tableau(dax_expression):
         try:
             response = openai.ChatCompletion.create(
                 model="gpt-4",
                 messages=[
-                    {"role": "system", "content": "You convert DAX expressions to Tableau calculated fields. Remember that table names should not be included in the Tableau calculated field output since Tableau already prebuilds them."},
+                    {"role": "system", "content": "You convert DAX expressions to Tableau calculated fields."},
                     {"role": "user", "content": f"Convert this DAX expression to Tableau: {dax_expression}"}
                 ],
                 max_tokens=300
@@ -80,13 +79,13 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion", expanded=Tr
         except Exception as e:
             return f"Error during conversion: {e}"
 
-    # Allow users to extract and select DAX expressions
     if "pbix_file_path" in st.session_state:
-        extracted_dax_df = extract_schema(st.session_state.pbix_file_path)
+        extracted_dax_df = extract_all_dax_expressions(st.session_state.pbix_file_path)
         if isinstance(extracted_dax_df, pd.DataFrame) and not extracted_dax_df.empty:
+            extracted_dax_df = extracted_dax_df.reset_index(drop=True)
             st.write(f"### 📌 Total DAX Expressions Found: {len(extracted_dax_df)}")
             
-            # Display folder-based selection
+            # Allow filtering by DisplayFolder if available
             if "DisplayFolder" in extracted_dax_df.columns:
                 display_folders = extracted_dax_df["DisplayFolder"].dropna().unique().tolist()
                 display_folders.sort()
@@ -127,9 +126,7 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion", expanded=Tr
     else:
         st.warning("⚠️ Please upload a PBIX file first.")
 
-##relationship block
-
-with st.expander("🔗 3. Relationships Extraction"):
+with st.expander("🔗 3. Relationships Extraction", expanded=True):
     st.write("Extract relationships from your Power BI data model to help you maintain data integrity and relationships in Tableau.")
 
     # Function to extract relationships from the PBIX file
@@ -195,14 +192,10 @@ with st.expander("🔗 3. Relationships Extraction"):
         else:
             st.warning("Please upload a PBIX file to proceed.")
 
-
-
-
-# Block for Q&A Section with ChatGPT
-with st.expander("💬 4. Ask Me Anything!"):
-    st.write("Have any questions about Power BI, DAX expressions, or Tableau? Ask here, and I'll do my best to help you!")
-
-    question = st.text_input("Enter your question about Power BI DAX expressions or Tableau:")
+# ✅ Q&A Chat Section
+with st.expander("💬 4. Ask Me Anything!", expanded=True):
+    st.write("Have any questions about Power BI, DAX expressions, or Tableau? Ask here!")
+    question = st.text_input("Enter your question:", key="question_input")
     if question:
         with st.spinner("Generating answer..."):
             try:
