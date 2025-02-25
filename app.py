@@ -79,8 +79,8 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion", expanded=Tr
             response = openai.ChatCompletion.create(
                 model="gpt-4",
                 messages=[
-                    {"role": "system", "content": "You convert DAX expressions to Tableau calculated fields. Do not include the data source name in the conversion."},
-                    {"role": "user", "content": f"Convert this DAX expression to Tableau without including the data source name: {dax_expression}. Provide an explanation of the Tableau calculated field conversion before giving the actual formula."}
+                    {"role": "system", "content": "You convert DAX expressions to Tableau calculated fields. Do not include the data source name or any formatting (such as currency, percentage, or date formatting) in the conversion. Formatting should be handled in Tableau separately."},
+                    {"role": "user", "content": f"Convert this DAX expression to Tableau without including the data source name or any formatting: {dax_expression}. Provide an explanation of the Tableau calculated field conversion before giving the actual formula."}
                 ],
                 max_tokens=300
             )
