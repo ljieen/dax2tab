@@ -220,7 +220,7 @@ with st.expander("💬 4. Ask Me Anything!", expanded=True):
         st.session_state.chat_history = []
     
     for msg in st.session_state.chat_history:
-        st.write(msg)
+        st.write(f"**{msg['role'].capitalize()}:** {msg['content']}")
     
     user_input = st.text_input("Enter your question:", key="question_input")
     if user_input:
@@ -234,6 +234,7 @@ with st.expander("💬 4. Ask Me Anything!", expanded=True):
                 )
                 answer = response.choices[0].message['content'].strip()
                 st.session_state.chat_history.append({"role": "assistant", "content": answer})
-                st.write(f"**Bot:** {answer}")
+                st.write(f"**Assistant:** {answer}")
             except Exception as e:
                 st.error(f"Error during question processing: {e}")
+
