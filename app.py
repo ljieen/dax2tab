@@ -214,6 +214,8 @@ with st.expander("🔗 3. Relationships Extraction", expanded=True):
             st.warning("Please upload a PBIX file to proceed.")
 
 # ✅ Q&A Chat Section
+
+# Function to generate a response using GPT-4
 def generate_response(prompt):
     completions = openai.ChatCompletion.create(
         model="gpt-4",
@@ -236,15 +238,15 @@ if "past" not in st.session_state:
 with st.expander("💬 4. Ask Me Anything!", expanded=True):
     st.write("Have any questions about Power BI, DAX expressions, or Tableau? Ask here!")
 
-    # Display chat history
+    # Display chat history (chat remains visible)
     chat_placeholder = st.container()
     with chat_placeholder:
         for i in range(len(st.session_state["generated"]) - 1, -1, -1):
             st.markdown(f"🤖 **Bot:** {st.session_state['generated'][i]}")
             st.markdown(f"🧑‍💬 **You:** {st.session_state['past'][i]}")
 
-    # User input field (always at the bottom)
-    user_input = st.text_input("🧑‍💬 You:", key="question_input")
+    # User input field (this will be cleared after submission)
+    user_input = st.text_input("🧑‍💬 You:", key="question_input", value="")
 
     if st.button("Send", key="send_button"):
         if user_input.strip():  # Ensure input is not empty
@@ -259,8 +261,11 @@ with st.expander("💬 4. Ask Me Anything!", expanded=True):
                     # Append bot response to chat history
                     st.session_state.generated.append(output)
 
-                    # 🔹 Clear input field properly using pop()
-                    st.session_state.pop("question_input")
+                    # 🔹 Clear only the input field (chat history remains)
+                    st.session_state["question_input"] = ""
+
+                    # 🔄 Force UI update so input clears instantly
+                    st.rerun()
 
                 except Exception as e:
                     st.error(f"Error during question processing: {e}")
