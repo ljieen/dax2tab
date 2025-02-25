@@ -79,8 +79,8 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion", expanded=Tr
             response = openai.ChatCompletion.create(
                 model="gpt-4",
                 messages=[
-                    {"role": "system", "content": "You convert DAX expressions to Tableau calculated fields."},
-                    {"role": "user", "content": f"Convert this DAX expression to Tableau: {dax_expression}"}
+                    {"role": "system", "content": "You convert DAX expressions to Tableau calculated fields. Do not include the data source name in the conversion."},
+                    {"role": "user", "content": f"Convert this DAX expression to Tableau without including the data source name: {dax_expression}"}
                 ],
                 max_tokens=300
             )
@@ -134,6 +134,7 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion", expanded=Tr
             st.write(extracted_dax_df)
     else:
         st.warning("⚠️ Please upload a PBIX file first.")
+
 
 
 
