@@ -214,12 +214,14 @@ with st.expander("🔗 3. Relationships Extraction", expanded=True):
             st.warning("Please upload a PBIX file to proceed.")
 
 # ✅ Q&A Chat Section
+
+# Initialize chat history in session state
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = [
         {"role": "system", "content": "You are an assistant knowledgeable in Power BI DAX expressions and Tableau."}
     ]
 
-# Keep input state separate to prevent unnecessary re-runs
+# Initialize user input in session state
 if "user_input" not in st.session_state:
     st.session_state.user_input = ""
 
@@ -267,11 +269,9 @@ with st.expander("💬 4. Ask Me Anything!", expanded=True):
                     # Append assistant message to history
                     st.session_state.chat_history.append({"role": "assistant", "content": answer})
 
-                    # Clear input field for the next question
-                    st.session_state.user_input = ""
-
-                    # Refresh chat display
-                    st.rerun()
+                    # 🔹 Clear input field
+                    st.session_state.user_input = ""  
+                    st.experimental_rerun()  # 🔄 Force rerun to refresh input box
 
                 except Exception as e:
                     st.error(f"Error during question processing: {e}")
