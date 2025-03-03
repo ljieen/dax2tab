@@ -150,7 +150,7 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion", expanded=Tr
 
 #test 
 # ✅ 2a. Original Field Mapper (Enhanced)
-with st.expander("🗂️ 5. Original Field Mapper", expanded=True):
+with st.expander("🗂️ 2a. Original Field Mapper", expanded=True):
 
     class ReportExtractor:
         def __init__(self, pbix_path):
