@@ -55,14 +55,17 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion", expanded=Tr
         except Exception as e:
             return f"Error during DAX extraction: {e}"
 
-    if "pbix_file_path" in st.session_state:
-        extracted_dax_df = extract_all_dax_expressions(st.session_state.pbix_file_path)
-        if isinstance(extracted_dax_df, pd.DataFrame):
-            st.dataframe(extracted_dax_df)
-            csv = extracted_dax_df.to_csv(index=False).encode("utf-8")
-            st.download_button("📥 Download DAX Expressions", data=csv, file_name="dax_expressions.csv", mime="text/csv")
+    if st.button("Extract DAX Expressions"):
+        if "pbix_file_path" in st.session_state:
+            extracted_dax_df = extract_all_dax_expressions(st.session_state.pbix_file_path)
+            if isinstance(extracted_dax_df, pd.DataFrame):
+                st.dataframe(extracted_dax_df)
+                csv = extracted_dax_df.to_csv(index=False).encode("utf-8")
+                st.download_button("📥 Download DAX Expressions", data=csv, file_name="dax_expressions.csv", mime="text/csv")
+            else:
+                st.write(extracted_dax_df)
         else:
-            st.write(extracted_dax_df)
+            st.warning("⚠️ Please upload a PBIX file first.")
 
 # ✅ 3. Relationships Extraction
 with st.expander("🔗 3. Relationships Extraction", expanded=True):
