@@ -1,6 +1,6 @@
 streamlit
 pandas
-pbixray==0.55.1
+pbixray
 transformers
 accelerate
 torch
