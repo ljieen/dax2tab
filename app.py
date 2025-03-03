@@ -148,6 +148,85 @@ with st.expander("🔄 2. DAX Expression Extraction and Conversion", expanded=Tr
     else:
         st.warning("⚠️ Please upload a PBIX file first.")
 
+#test 
+# ✅ 2a. Original Field Mapper (Enhanced)
+with st.expander("🗂️ 5. Original Field Mapper", expanded=True):
+
+    class ReportExtractor:
+        def __init__(self, pbix_path):
+            self.pbix_path = pbix_path
+            self.result = []
+
+        def extract(self):
+            temp_folder = self.pbix_path.replace(".pbix", "_temp")
+            try:
+                shutil.rmtree(temp_folder)
+            except FileNotFoundError:
+                pass
+
+            with ZipFile(self.pbix_path, 'r') as zip_ref:
+                zip_ref.extractall(temp_folder)
+
+            with open(f"{temp_folder}/Report/Layout", 'r', encoding='utf-16 le') as file:
+                report_layout = json.load(file)
+
+            fields = []
+            for section in report_layout.get("sections", []):
+                for visual in section.get("visualContainers", []):
+                    try:
+                        query_dict = json.loads(visual['config'])
+                        for command in query_dict['singleVisual']['prototypeQuery']['Select']:
+                            alias = command['Name'].split('.')[1]
+                            table = command['Name'].split('.')[0]
+                            fields.append([section['displayName'], query_dict['name'], table, alias])
+                    except:
+                        pass
+
+            self.result = fields
+            shutil.rmtree(temp_folder)
+
+    def extract_renamed_columns_with_table(df, expression_col="Expression", table_col="TableName"):
+        renamed_columns = []
+        for _, row in df.dropna(subset=[expression_col]).iterrows():
+            script = row[expression_col]
+            table_name = row[table_col]
+
+            rename_matches = re.findall(r'Table\.RenameColumns\([^,]+,\s*\{(.*?)\}\)', script)
+            for match in rename_matches:
+                column_pairs = re.findall(r'"([^"]+)"\s*,\s*"([^"]+)"', match)
+                for original, alias in column_pairs:
+                    renamed_columns.append([table_name, original, alias])
+
+        return pd.DataFrame(renamed_columns, columns=["Table Name", "Original Column", "Alias"])
+
+    def process_pbix(pbix_path):
+        re = ReportExtractor(pbix_path)
+        re.extract()
+        df_metadata = pd.DataFrame(re.result, columns=['Page', 'Visual ID', 'Table', 'Alias'])
+
+        model = PBIXRay(pbix_path)
+        df_power_query = pd.DataFrame(model.power_query)
+
+        renamed_df_with_table = extract_renamed_columns_with_table(df_power_query)
+
+        df_merged = df_metadata.merge(
+            renamed_df_with_table, how='left', left_on=['Table', 'Alias'], right_on=['Table Name', 'Alias']
+        ).drop(columns=['Table Name'], errors='ignore')
+
+        return df_merged
+
+    if st.button("🔄 Run Field Mapping"):
+        if "pbix_file_path" in st.session_state:
+            field_mapping_df = process_pbix(st.session_state.pbix_file_path)
+            if isinstance(field_mapping_df, pd.DataFrame) and not field_mapping_df.empty:
+                st.dataframe(field_mapping_df)
+                csv = field_mapping_df.to_csv(index=False).encode("utf-8")
+                st.download_button("📥 Download Mapped Fields", data=csv, file_name="mapped_fields.csv", mime="text/csv")
+            else:
+                st.warning("⚠️ No field mappings found.")
+        else:
+            st.warning("⚠️ Please upload a PBIX file first.")
+
 ##relationships
 
 
@@ -269,80 +348,4 @@ if user_input:
     # Store assistant response in chat history
     st.session_state.messages.append({"role": "assistant", "content": full_response})
 
-# ✅ 5. Original Field Mapper (Enhanced)
-with st.expander("🗂️ 5. Original Field Mapper", expanded=True):
 
-    class ReportExtractor:
-        def __init__(self, pbix_path):
-            self.pbix_path = pbix_path
-            self.result = []
-
-        def extract(self):
-            temp_folder = self.pbix_path.replace(".pbix", "_temp")
-            try:
-                shutil.rmtree(temp_folder)
-            except FileNotFoundError:
-                pass
-
-            with ZipFile(self.pbix_path, 'r') as zip_ref:
-                zip_ref.extractall(temp_folder)
-
-            with open(f"{temp_folder}/Report/Layout", 'r', encoding='utf-16 le') as file:
-                report_layout = json.load(file)
-
-            fields = []
-            for section in report_layout.get("sections", []):
-                for visual in section.get("visualContainers", []):
-                    try:
-                        query_dict = json.loads(visual['config'])
-                        for command in query_dict['singleVisual']['prototypeQuery']['Select']:
-                            alias = command['Name'].split('.')[1]
-                            table = command['Name'].split('.')[0]
-                            fields.append([section['displayName'], query_dict['name'], table, alias])
-                    except:
-                        pass
-
-            self.result = fields
-            shutil.rmtree(temp_folder)
-
-    def extract_renamed_columns_with_table(df, expression_col="Expression", table_col="TableName"):
-        renamed_columns = []
-        for _, row in df.dropna(subset=[expression_col]).iterrows():
-            script = row[expression_col]
-            table_name = row[table_col]
-
-            rename_matches = re.findall(r'Table\.RenameColumns\([^,]+,\s*\{(.*?)\}\)', script)
-            for match in rename_matches:
-                column_pairs = re.findall(r'"([^"]+)"\s*,\s*"([^"]+)"', match)
-                for original, alias in column_pairs:
-                    renamed_columns.append([table_name, original, alias])
-
-        return pd.DataFrame(renamed_columns, columns=["Table Name", "Original Column", "Alias"])
-
-    def process_pbix(pbix_path):
-        re = ReportExtractor(pbix_path)
-        re.extract()
-        df_metadata = pd.DataFrame(re.result, columns=['Page', 'Visual ID', 'Table', 'Alias'])
-
-        model = PBIXRay(pbix_path)
-        df_power_query = pd.DataFrame(model.power_query)
-
-        renamed_df_with_table = extract_renamed_columns_with_table(df_power_query)
-
-        df_merged = df_metadata.merge(
-            renamed_df_with_table, how='left', left_on=['Table', 'Alias'], right_on=['Table Name', 'Alias']
-        ).drop(columns=['Table Name'], errors='ignore')
-
-        return df_merged
-
-    if st.button("🔄 Run Field Mapping"):
-        if "pbix_file_path" in st.session_state:
-            field_mapping_df = process_pbix(st.session_state.pbix_file_path)
-            if isinstance(field_mapping_df, pd.DataFrame) and not field_mapping_df.empty:
-                st.dataframe(field_mapping_df)
-                csv = field_mapping_df.to_csv(index=False).encode("utf-8")
-                st.download_button("📥 Download Mapped Fields", data=csv, file_name="mapped_fields.csv", mime="text/csv")
-            else:
-                st.warning("⚠️ No field mappings found.")
-        else:
-            st.warning("⚠️ Please upload a PBIX file first.")
