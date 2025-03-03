@@ -1,12 +1,15 @@
 streamlit
 pandas
-pbixray
+pbixray==0.55.1  # Ensure compatibility with your Python version
 transformers
 accelerate
-torch  # Necessary for GPU support
+# Manually install torch before running requirements.txt
 openai==0.28.0
 openpyxl
 xlsxwriter
 tableauhyperapi
 tableauserverclient
+protobuf==4.23.4  # Optional: Improves compatibility for Tableau API
+orjson  # Faster JSON handling, useful for large PBIX processing
+
 
