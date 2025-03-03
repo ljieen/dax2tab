@@ -9,7 +9,4 @@ openpyxl
 xlsxwriter
 tableauhyperapi
 tableauserverclient
-replicate
-shutil
-re
-zipfile
+
