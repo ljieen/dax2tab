@@ -10,7 +10,6 @@ xlsxwriter
 tableauhyperapi
 tableauserverclient
 replicate
-json
 shutil
 re
 zipfile
